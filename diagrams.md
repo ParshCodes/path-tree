@@ -1,34 +1,96 @@
+Parsh
+paro10
+Invisible
+
+Parsh — 10/5/2025 5:13 PM
+Hey
+Push this in github
+you can do that tmrw too..
+Forwarded
 # Entity Relationship Diagram (ERD)
-```mermaid
 erDiagram
-  ACCOUNT ||--o| STUDENT_PROFILE : "owns (student only)"
-  ACCOUNT ||--o{ NOTIFICATION : "receives"
-  STUDENT_PROFILE ||--o{ DEGREE_PLAN : "has"
-  STUDENT_PROFILE ||--o{ COMPLETION : "past courses"
-  STUDENT_PROFILE ||--o{ STUDENT_INTEREST : "tags"
-  INTEREST_TAG ||--o{ STUDENT_INTEREST : "is used by"
+  ACCOUNT ||--o| STUDENT_PROFILE : owns
+  ACCOUNT ||--o{ NOTIFICATION : receives
+  STUDENT_PROFILE ||--o{ DEGREE_PLAN : has
+  STUDENT_PROFILE ||--o{ COMPLETION : completed
+Expand
+message.txt
+5 KB
+Mpie2000
 
-  DEGREE_PLAN ||--|{ TERM : "organizes"
-  TERM ||--o{ PLANNED_COURSE : "includes"
-  COURSE ||--o{ PLANNED_COURSE : "is planned as"
-  DEGREE_PLAN ||--o{ AUDIT_RESULT : "produces"
-  DEGREE_PLAN ||--o{ SHARE_LINK : "can share via"
+ — 10/5/2025 5:14 PM
+Is it due tonight or tomorrow? I am not sure what time I’ll have access to a computer tomorrow but I’ll try
+Parsh — 10/5/2025 5:15 PM
+we got the assignment covered
+Mpie2000
 
-  PROGRAM ||--o{ STREAM : "offers"
-  PROGRAM ||--|{ PROGRAM_REQUIREMENT : "defines"
-  STREAM ||--o{ PROGRAM_REQUIREMENT : "adds"
+ — 10/5/2025 5:15 PM
+Actually lemme try to do this from my phone
+Parsh — 10/5/2025 5:15 PM
+this is just to show u did something...
+Mpie2000
 
-  COURSE ||--o{ COURSE_PREREQ : "target_of"
-  COURSE ||--o{ COURSE_PREREQ : "prereq_of"
-  COURSE ||--o{ COURSE_EQUIV : "equivalent_to"
-  COURSE ||--o{ COURSE_OFFERING : "offered_as"
-  COURSE ||--o{ COMPLETION : "completed_as"
+ — 10/5/2025 5:15 PM
+Thank you!! I very appreciate you guys
+Parsh — 10/5/2025 5:15 PM
+dont lol
+Mpie2000
+
+ — 10/5/2025 5:15 PM
+Lmfao
+Parsh — 10/5/2025 5:15 PM
+nw enjoy your vacation
+Mpie2000
+
+ — 10/5/2025 5:15 PM
+:’) thank you
+Mpie2000
+
+ — 10/11/2025 6:47 PM
+Parsh, I'm sorry. I don't understand how or where you guys would like me to push the code that you guys made
+I understand the git push etc. but idk where you want me to push it to
+Parsh — 10/11/2025 10:18 PM
+Hi
+We can have a vc tmrw
+Mpie2000
+
+ — 10/11/2025 10:18 PM
+okay!
+﻿
+Mpie2000
+mpie2000
+
+ 
+ 
+# Entity Relationship Diagram (ERD)
+erDiagram
+  ACCOUNT ||--o| STUDENT_PROFILE : owns
+  ACCOUNT ||--o{ NOTIFICATION : receives
+  STUDENT_PROFILE ||--o{ DEGREE_PLAN : has
+  STUDENT_PROFILE ||--o{ COMPLETION : completed
+  STUDENT_PROFILE ||--o{ STUDENT_INTEREST : tags
+  INTEREST_TAG ||--o{ STUDENT_INTEREST : used_by
+
+  DEGREE_PLAN ||--|{ TERM : organizes
+  TERM ||--o{ PLANNED_COURSE : includes
+  COURSE ||--o{ PLANNED_COURSE : planned_as
+  DEGREE_PLAN ||--o{ AUDIT_RESULT : produces
+  DEGREE_PLAN ||--o{ SHARE_LINK : shares_via
+
+  PROGRAM ||--o{ STREAM : offers
+  PROGRAM ||--|{ PROGRAM_REQUIREMENT : defines
+  STREAM ||--o{ PROGRAM_REQUIREMENT : adds
+
+  COURSE ||--o{ COURSE_PREREQ : has_rules
+  COURSE ||--o{ COURSE_EQUIV : equivalence
+  COURSE ||--o{ COURSE_OFFERING : offered_as
+  COURSE ||--o{ COMPLETION : completed_as
 
   ACCOUNT {
     uuid id PK
     string email
     string password_hash
-    string role        
+    string role
     boolean email_verified
     datetime created_at
   }
@@ -42,9 +104,9 @@ erDiagram
   }
 
   PROGRAM {
-    string id PK       
+    string id PK
     string name
-    string level       
+    string level
     string catalog_year
   }
 
@@ -58,14 +120,14 @@ erDiagram
   PROGRAM_REQUIREMENT {
     string id PK
     string program_id FK
-    string stream_id FK   
-    string kind           
+    string stream_id FK
+    string kind
     int min_units
-    json rule             
+    json rule
   }
 
   COURSE {
-    string id PK         
+    string id PK
     string title
     int units
     string department
@@ -75,8 +137,8 @@ erDiagram
     string id PK
     string target_course_id FK
     string prereq_course_id FK
-    string type           
-    string group_tag      
+    string type
+    string group_tag
     float min_grade
   }
 
@@ -90,8 +152,8 @@ erDiagram
   COURSE_OFFERING {
     string id PK
     string course_id FK
-    string term_code      
-    json meeting_times    
+    string term_code
+    json meeting_times
   }
 
   DEGREE_PLAN {
@@ -99,13 +161,13 @@ erDiagram
     uuid student_profile_id FK
     string program_id FK
     string catalog_year
-    json settings        
+    json settings
   }
 
   TERM {
     uuid id PK
     uuid plan_id FK
-    string term_code    
+    string term_code
     int max_units
   }
 
@@ -113,8 +175,8 @@ erDiagram
     uuid id PK
     uuid term_id FK
     string course_id FK
-    string status         
-    string source       
+    string status
+    string source
   }
 
   COMPLETION {
@@ -124,15 +186,15 @@ erDiagram
     string term_code
     string grade
     int units_earned
-    string source         
+    string source
   }
 
   AUDIT_RESULT {
     uuid id PK
     uuid plan_id FK
     datetime run_at
-    json summary          
-    json issues          
+    json summary
+    json issues
   }
 
   SHARE_LINK {
@@ -140,16 +202,16 @@ erDiagram
     uuid plan_id FK
     string token
     datetime expires_at
-    string permission     
+    string permission
   }
 
   NOTIFICATION {
     uuid id PK
     uuid account_id FK
-    string kind           
+    string kind
     json payload
     datetime deliver_at
-    string status         
+    string status
   }
 
   INTEREST_TAG {
@@ -162,52 +224,48 @@ erDiagram
     uuid student_profile_id FK
     string tag_id FK
   }
-  ```
+```
 ##Authentication flow
 ```mermaid
 sequenceDiagram
   actor U as User
-  participant UI as Web App
-  participant GW as API Gateway
-  participant AUTH as Auth Service
-  participant DB as Auth DB
-  participant MAIL as Email Service
+  participant FE as Frontend
+  participant API as Backend
+  participant AUTH as JWT Service
+  participant DB as Database
 
-  %% Sign Up
-  U->>UI: Fill name, email, password
-  UI->>GW: POST /auth/register
-  GW->>AUTH: /register
-  AUTH->>DB: Create account (email_verified=false)
-  AUTH->>MAIL: Send verification link
-  MAIL-->>U: Verification email
-  U->>UI: Click verify link
-  UI->>GW: GET /auth/verify?token=...
-  GW->>AUTH: /verify
-  AUTH->>DB: Set email_verified=true
-  AUTH-->>UI: Verified
+  %% Login (context)
+  U->>FE: Enter email + password
+  FE->>API: POST /auth/login
+  API->>DB: Verify credentials
+  API->>AUTH: Issue tokens
+  API-->>FE: 200 {access_token, refresh_token}
 
-  %% Login
-  U->>UI: Enter email/password
-  UI->>GW: POST /auth/login
-  GW->>AUTH: /login
-  AUTH->>DB: Validate credentials
-  AUTH-->>GW: access_token + refresh_token
-  GW-->>UI: tokens
+  %% Protected request
+  FE->>API: GET /plans (Bearer access_token)
+  API->>AUTH: Validate access_token
+  alt token valid
+    AUTH-->>API: OK
+    API->>DB: Load plans
+    DB-->>API: Plans
+    API-->>FE: 200 [...]
+  else token expired/invalid
+    AUTH-->>API: Error
+    API-->>FE: 401 Unauthorized
+  end
 
-  %% Authorized call
-  UI->>GW: GET /plans (Bearer access)
-  GW->>AUTH: Validate JWT
-  AUTH-->>GW: OK
-  GW-->>UI: 200 data
+  %% Refresh
+  FE->>API: POST /auth/refresh {refresh_token}
+  API->>AUTH: Validate refresh_token
+  alt refresh valid
+    AUTH-->>API: OK
+    API->>AUTH: Rotate & issue new tokens
+    AUTH-->>API: New tokens
+    API-->>FE: 200 {new access_token, refresh_token}
+  else refresh invalid/expired
+    AUTH-->>API: Error
+    API-->>FE: 401 Unauthorized
+  end
 
-  %% Refresh & Logout
-  UI->>GW: POST /auth/refresh
-  GW->>AUTH: /refresh
-  AUTH-->>GW: new access_token
-  GW-->>UI: new access_token
-  U->>UI: Logout
-  UI->>GW: POST /auth/logout
-  GW->>AUTH: Revoke refresh token
-  AUTH-->>GW: 204
 ```
 ##System Arhitecture
