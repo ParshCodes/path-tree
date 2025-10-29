@@ -1,15 +1,34 @@
-from pydantic_settings import BaseSettings , SettingsConfigDict
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
-from typing import List
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    app_name: str = "Course Planner"
+    app_version: str = "0.1.0"
 
-    APP_NAME: str = "Course Planner"
-    DEBUG: bool = False
-    ALLOWED_HOSTS: List[str] = ["*"]
-    DATABASE_URL: str = "sqlite:///./test.db"
-    SECRET_KEY: str = "your-secret-key"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    secret_key: str = Field(
+        default="your_secret_key",
+        description="The secret key for JWT",
+    )
+
+    algorithm: str = Field(
+        default="HS256",
+        description="The algorithm used for JWT",
+    )
+
+    access_token_expire_minutes: int = Field(
+        default=30,
+        description="Access token expiration time in minutes",
+    )
+
+    database_url: str = Field(
+        default="",
+        description="Database connection URL",
+    )
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+
 
 settings = Settings()
