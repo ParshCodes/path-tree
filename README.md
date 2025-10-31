@@ -87,8 +87,12 @@ If not, install the basics:
 ```bash
 pip install fastapi uvicorn[standard] pydantic-settings
 ```
-
-### 3) Run the API
+### 3) Configure the .env
+```bash
+Make sure the .env has the the correct username and password as your postgres.
+And you need to create a database named course_planner
+```
+### 4) Run the API
 ```bash
 python -m uvicorn app.main:app --reload --app-dir backend/src
 ```
