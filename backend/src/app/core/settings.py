@@ -4,52 +4,38 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    app_name: str = "Course Planner"
-    app_version: str = "0.1.0"
+    app_name: str = Field(default="Course Planner", description="App name")
+    app_version: str = Field(default="1.0.0", description="App version")
 
-    # JWT Settings
-    secret_key: str = Field(
-        default="your_secret_key",
-        description="The secret key for JWT",
-    )
-    algorithm: str = Field(
-        default="HS256",
-        description="The algorithm used for JWT",
-    )
-    access_token_expire_minutes: int = Field(
-        default=30,
-        description="Access token expiration time in minutes",
-    )
+    # JWT
+    secret_key: str = Field(default="change_me", description="JWT secret key")
+    algorithm: str = Field(default="HS256", description="JWT algorithm")
+    access_token_expire_minutes: int = Field(default=30)
+    refresh_token_expire_minutes: int = Field(default=60 * 24 * 30)  # 30 days
 
-    # Database settings
-    POSTGRES_USER: str = Field(
-        default="postgres",
-        description="PostgreSQL username",
-    )
-    POSTGRES_PASSWORD: str = Field(
-        default="postgres",
-        description="PostgreSQL password",
-    )
-    POSTGRES_HOST: str = Field(
-        default="localhost",
-        description="PostgreSQL host",
-    )
-    POSTGRES_PORT: str = Field(
-        default="5432",
-        description="PostgreSQL port",
-    )
-    POSTGRES_DB: str = Field(
-        default="path_tree",
-        description="PostgreSQL database name",
-    )
+    # CORS
+    cors_origins: str = Field(default="*", description="Comma-separated origins")
+
+
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_DB: str = "course_planner"
+
+ 
     DATABASE_URL: Optional[str] = None
 
     @property
     def async_database_url(self) -> str:
-        """Get the async database URL for PostgreSQL."""
+        """Return async SQLAlchemy URL for Postgres."""
         if self.DATABASE_URL:
             return self.DATABASE_URL
-        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        return (
+            "postgresql+asyncpg://"
+            f"{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
 
     class Config:
         env_file = ".env"

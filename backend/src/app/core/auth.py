@@ -1,77 +1,40 @@
 from datetime import UTC, datetime, timedelta
+from typing import Optional
 
 import jwt
 from fastapi.security import OAuth2PasswordBearer
-from jwt import PyJWTError
+from jwt import ExpiredSignatureError, InvalidTokenError
+
 from pwdlib import PasswordHash
 
 from app.core.settings import settings
 
+# Load secret/config
 SECRET_KEY = settings.secret_key
 ALGORITHM = settings.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 
+# Password hashing configuration (pwdlib chooses bcrypt automatically)
 password_hash = PasswordHash.recommended()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/user/login")
+# OAuth2 dependency (used by routes/dependencies)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    """
-    Create a JWT access token.
+# === JWT Token helpers ===
 
-    Args:
-        data: The data to encode in the token
-        expires_delta: Optional custom expiration time
-
-    Returns:
-        str: The encoded JWT token
-    """
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT access token."""
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(UTC) + expires_delta
-    else:
-        expire = datetime.now(UTC) + timedelta(minutes=15)
+    expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_password_hash(password: str) -> str:
-    """
-    Hash a plaintext password.
-
-    Args:
-        password: The plaintext password to hash
-
-    Returns:
-        str: The hashed password
-    """
-    return password_hash.hash(password)
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verify a plaintext password against a hashed password.
-
-    Args:
-        plain_password: The plaintext password to verify
-        hashed_password: The hashed password to compare against
-
-    Returns:
-        bool: True if password matches, False otherwise
-    """
-    return password_hash.verify(plain_password, hashed_password)
-
-
 def verify_token(token: str) -> dict | None:
     """
-    Verify and decode a JWT token.
-
-    Args:
-        token: The JWT token to verify
-
-    Returns:
-        dict | None: The decoded payload if valid, None otherwise
+    Verify and decode a JWT token using PyJWT.
+    Returns the decoded payload or None if invalid/expired.
     """
     try:
         payload = jwt.decode(
@@ -79,7 +42,20 @@ def verify_token(token: str) -> dict | None:
             settings.secret_key,
             algorithms=[settings.algorithm],
         )
-    except PyJWTError:
-        return None
-    else:
         return payload
+    except (ExpiredSignatureError, InvalidTokenError):
+        return None
+
+
+
+
+# === Password helpers ===
+
+def get_password_hash(password: str) -> str:
+    """Hash a plaintext password."""
+    return password_hash.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Check a plaintext password against a hashed one."""
+    return password_hash.verify(plain_password, hashed_password)

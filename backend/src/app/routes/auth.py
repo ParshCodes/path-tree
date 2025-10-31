@@ -1,76 +1,47 @@
+from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_async_session
-from app.core.auth import (
-    get_current_user,
-    create_access_token,
-    create_refresh_token,
-    verify_refresh_token
-)
-from app.schemas.account import AccountCreate, AccountOut, Token, TokenPair
+from app.core.auth import create_access_token, oauth2_scheme
+from app.core.database import get_db
+from app.core.dependencies import get_current_user
 from app.repository.account import AccountRepository
+from app.schemas.account import AccountCreate, AccountOut, LoginRequest
+from app.schemas.token import Token
 
-router = APIRouter(tags=["auth"])
+router = APIRouter()
 
-@router.post("/register", response_model=AccountOut)
-async def register(
-    account: AccountCreate,
-    session: AsyncSession = Depends(get_async_session)
-):
-    """Register a new user account."""
-    repo = AccountRepository(session)
-    
-    # Check if email already exists
-    if await repo.get_by_email(account.email):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
-    
-    return await repo.create_account(account)
+@router.post("/register", response_model=AccountOut, status_code=status.HTTP_201_CREATED)
+async def register(payload: AccountCreate, db: AsyncSession = Depends(get_db)):
+    repo = AccountRepository(db)
+    if await repo.get_by_email(payload.email):
+        raise HTTPException(status_code=409, detail="Email already registered")
+    user = await repo.create(payload.email, payload.name, payload.password)
+    return AccountOut.model_validate(user, from_attributes=True)
 
-@router.post("/login", response_model=TokenPair)
-async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    session: AsyncSession = Depends(get_async_session)
-):
-    """Login with username (email) and password."""
-    repo = AccountRepository(session)
-    user = await repo.authenticate(form_data.username, form_data.password)
-    
+# OAuth2 Password flow (Swagger uses this): expects form fields `username` and `password`
+@router.post("/login", response_model=Token)
+async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+    repo = AccountRepository(db)
+    # In our app, "username" is the email
+    user = await repo.authenticate(form.username, form.password)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    return TokenPair(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id)
-    )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    token = create_access_token(data={"sub": user.email}, expires_delta=timedelta(minutes=15))
+    return Token(access_token=token, token_type="bearer")
 
-@router.post("/refresh", response_model=Token)
-async def refresh_token(
-    token: str,
-    session: AsyncSession = Depends(get_async_session)
-):
-    """Get a new access token using a refresh token."""
-    user_id = verify_refresh_token(token)
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    return Token(access_token=create_access_token(user_id))
+# Optional JSON login for programmatic clients
+@router.post("/login-json", response_model=Token, include_in_schema=True)
+async def login_json(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
+    repo = AccountRepository(db)
+    user = await repo.authenticate(payload.email, payload.password)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    token = create_access_token(data={"sub": user.email}, expires_delta=timedelta(minutes=15))
+    return Token(access_token=token, token_type="bearer")
 
+# Return the current user using the shared dependency
 @router.get("/me", response_model=AccountOut)
-async def get_current_account(
-    current_user: AccountOut = Depends(get_current_user)
-):
-    """Get the current user's account information."""
+async def me(current_user: AccountOut = Depends(get_current_user)):
     return current_user

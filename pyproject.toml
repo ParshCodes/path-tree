@@ -1,35 +1,28 @@
 [project]
-name = "student-planner"
-version = "0.1.0"
-requires-python = ">=3.10"
+name = "course-planner-api"
+version = "1.0.0"
+description = "FastAPI backend for Course Planner (Postgres, SQLAlchemy async)"
+requires-python = ">=3.11"
 dependencies = [
-  "fastapi>=0.111",
-  "uvicorn[standard]>=0.30",
-  "pydantic-settings>=2.4",
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.30.0",
+  "pydantic>=2.8.0",
+  "pydantic-settings>=2.4.0",
+  "python-jose[cryptography]>=3.3.0",
+  "passlib[bcrypt]>=1.7.4",
+  "sqlalchemy[asyncio]>=2.0.31",
+  "asyncpg>=0.29.0",
+  "alembic>=1.13.2",  # optional; not required if using create_all
 ]
 
-[project.optional-dependencies]
-dev = [
-  "pre-commit>=3.7",
-  "ruff>=0.5",
-  "black>=24.4",
-  "mypy>=1.10",
-  "pytest>=8.2",
-  "pytest-asyncio>=0.23",
-  "httpx>=0.27",
-  "python-dotenv>=1.0",
-]
+[tool.uvicorn]
+factory = false
 
 [tool.black]
 line-length = 100
-target-version = ["py310"]
 
-[tool.ruff]
-line-length = 100
-target-version = "py310"
-select = ["E", "F", "I", "UP", "B"]   # pyflakes/pycodestyle/imports/pyupgrade/bugbear
-ignore = ["E501"]                      # let Black handle line length
+[tool.isort]
+profile = "black"
 
-[tool.ruff.lint.isort]
-combine-as-imports = true
-force-sort-within-sections = true
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

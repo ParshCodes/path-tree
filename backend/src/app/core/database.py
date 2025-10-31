@@ -5,45 +5,45 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.core.settings import settings
 
+
 class Base(DeclarativeBase):
     pass
 
-# Create async engine
+
 engine = create_async_engine(
     settings.async_database_url,
-    echo=True,
+    echo=False,          
     pool_pre_ping=True,
 )
 
-# Create async session factory
-AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
+SessionLocal = async_sessionmaker(
+    bind=engine,
     expire_on_commit=False,
     autoflush=False,
     autocommit=False,
+    class_=AsyncSession,
 )
 
-async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency for getting async database sessions."""
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
 
-# Database initialization function
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    session = SessionLocal()
+    try:
+        yield session
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+    finally:
+        await session.close()
+
+
 async def init_db() -> None:
-    """Initialize the database."""
+    """Create tables if not exist (dev/bootstrap)."""
+    from app.models import account, program, course, plan  # ensure metadata is imported
+
     async with engine.begin() as conn:
-        # Create all tables
         await conn.run_sync(Base.metadata.create_all)
 
-# Database cleanup function
+
 async def close_db() -> None:
-    """Close all database connections."""
     await engine.dispose()

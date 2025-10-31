@@ -1,143 +1,157 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
 
-from app.core.database import get_async_session
-from app.core.auth import get_current_user
+from app.core.database import get_db
+from app.core.dependencies import get_current_user
+from app.repository.plan import PlanRepository
 from app.schemas.plan import (
-    PlanOut, PlanCreate, PlanUpdate,
-    TermOut, TermCreate, TermUpdate,
-    PlannedCourseCreate, PlannedCourseOut
+    PlanCreate,
+    PlanOut,
+    PlanUpdate,
+    PlanTermCreate,
+    PlanTermOut,
+    PlanCourseCreate,
 )
 from app.schemas.account import AccountOut
-from app.repository.plan import PlanRepository
 
-router = APIRouter(prefix="/plans", tags=["plans"])
+router = APIRouter()
 
-@router.get("", response_model=List[PlanOut])
+@router.get("", response_model=list[PlanOut])
 async def list_plans(
-    session: AsyncSession = Depends(get_async_session),
-    current_user: AccountOut = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db),
+    me: AccountOut = Depends(get_current_user),
 ):
-    """List all plans for the current user."""
-    repo = PlanRepository(session)
-    return await repo.list_plans(current_user.id)
+    repo = PlanRepository(db)
+    plans = await repo.list_plans(me.email)
+    return [PlanOut.model_validate(p, from_attributes=True) for p in plans]
 
-@router.post("", response_model=PlanOut)
+@router.post("", response_model=PlanOut, status_code=status.HTTP_201_CREATED)
 async def create_plan(
-    plan: PlanCreate,
-    session: AsyncSession = Depends(get_async_session),
-    current_user: AccountOut = Depends(get_current_user)
+    payload: PlanCreate,
+    db: AsyncSession = Depends(get_db),
+    me: AccountOut = Depends(get_current_user),
 ):
-    """Create a new study plan."""
-    repo = PlanRepository(session)
-    return await repo.create_plan(current_user.id, plan)
+    repo = PlanRepository(db)
+    plan = await repo.create_plan(owner_email=me.email, name=payload.name, program_id=payload.program_id)
+    return PlanOut.model_validate(plan, from_attributes=True)
 
 @router.get("/{plan_id}", response_model=PlanOut)
 async def get_plan(
-    plan_id: str,
-    session: AsyncSession = Depends(get_async_session),
-    current_user: AccountOut = Depends(get_current_user)
+    plan_id: int,
+    db: AsyncSession = Depends(get_db),
+    me: AccountOut = Depends(get_current_user),
 ):
-    """Get a specific plan by ID."""
-    repo = PlanRepository(session)
-    plan = await repo.get_plan(plan_id)
-    if not plan:
+    repo = PlanRepository(db)
+    plan = await repo.get(plan_id)
+    if not plan or plan.owner_email != me.email:
         raise HTTPException(status_code=404, detail="Plan not found")
-    if plan.student_profile_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to access this plan")
-    return plan
+    return PlanOut.model_validate(plan, from_attributes=True)
 
 @router.patch("/{plan_id}", response_model=PlanOut)
 async def update_plan(
-    plan_id: str,
-    plan_update: PlanUpdate,
-    session: AsyncSession = Depends(get_async_session),
-    current_user: AccountOut = Depends(get_current_user)
+    plan_id: int,
+    payload: PlanUpdate,
+    db: AsyncSession = Depends(get_db),
+    me: AccountOut = Depends(get_current_user),
 ):
-    """Update a study plan."""
-    repo = PlanRepository(session)
-    plan = await repo.get_plan(plan_id)
-    if not plan:
+    repo = PlanRepository(db)
+    plan = await repo.get(plan_id)
+    if not plan or plan.owner_email != me.email:
         raise HTTPException(status_code=404, detail="Plan not found")
-    if plan.student_profile_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to modify this plan")
-    return await repo.update_plan(plan_id, plan_update)
+    if payload.name:
+        plan = await repo.update_name(plan, payload.name)
+    return PlanOut.model_validate(plan, from_attributes=True)
 
-@router.delete("/{plan_id}")
+@router.delete("/{plan_id}", status_code=204)
 async def delete_plan(
-    plan_id: str,
-    session: AsyncSession = Depends(get_async_session),
-    current_user: AccountOut = Depends(get_current_user)
+    plan_id: int,
+    db: AsyncSession = Depends(get_db),
+    me: AccountOut = Depends(get_current_user),
 ):
-    """Delete a study plan."""
-    repo = PlanRepository(session)
-    plan = await repo.get_plan(plan_id)
-    if not plan:
+    repo = PlanRepository(db)
+    plan = await repo.get(plan_id)
+    if not plan or plan.owner_email != me.email:
         raise HTTPException(status_code=404, detail="Plan not found")
-    if plan.student_profile_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to delete this plan")
-    await repo.delete_plan(plan_id)
-    return {"status": "success"}
+    await repo.delete(plan_id)
+    return None
 
-# Term endpoints
-@router.post("/{plan_id}/terms", response_model=TermOut)
+# ---- Terms & Courses ----
+
+@router.get("/{plan_id}/terms", response_model=list[PlanTermOut])
+async def list_terms(
+    plan_id: int,
+    db: AsyncSession = Depends(get_db),
+    me: AccountOut = Depends(get_current_user),
+):
+    repo = PlanRepository(db)
+    plan = await repo.get(plan_id)
+    if not plan or plan.owner_email != me.email:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    terms = await repo.list_terms(plan_id)
+    return [PlanTermOut.model_validate(t, from_attributes=True) for t in terms]
+
+@router.post("/{plan_id}/terms", response_model=PlanTermOut, status_code=201)
 async def add_term(
-    plan_id: str,
-    term: TermCreate,
-    session: AsyncSession = Depends(get_async_session),
-    current_user: AccountOut = Depends(get_current_user)
+    plan_id: int,
+    payload: PlanTermCreate,
+    db: AsyncSession = Depends(get_db),
+    me: AccountOut = Depends(get_current_user),
 ):
-    """Add a new term to a plan."""
-    repo = PlanRepository(session)
-    return await repo.add_term(plan_id, term)
+    repo = PlanRepository(db)
+    plan = await repo.get(plan_id)
+    if not plan or plan.owner_email != me.email:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    term = await repo.add_term(plan_id, payload.term_code)
+    return PlanTermOut.model_validate(term, from_attributes=True)
 
-@router.patch("/{plan_id}/terms/{term_id}", response_model=TermOut)
-async def update_term(
-    plan_id: str,
-    term_id: str,
-    term_update: TermUpdate,
-    session: AsyncSession = Depends(get_async_session),
-    current_user: AccountOut = Depends(get_current_user)
-):
-    """Update a term in a plan."""
-    repo = PlanRepository(session)
-    return await repo.update_term(plan_id, term_id, term_update)
-
-@router.delete("/{plan_id}/terms/{term_id}")
-async def delete_term(
-    plan_id: str,
-    term_id: str,
-    session: AsyncSession = Depends(get_async_session),
-    current_user: AccountOut = Depends(get_current_user)
-):
-    """Delete a term from a plan."""
-    repo = PlanRepository(session)
-    await repo.delete_term(plan_id, term_id)
-    return {"status": "success"}
-
-# Course planning endpoints
-@router.post("/{plan_id}/terms/{term_id}/courses", response_model=PlannedCourseOut)
+@router.post("/{plan_id}/terms/{term_id}/courses", status_code=201)
 async def add_course(
-    plan_id: str,
-    term_id: str,
-    course: PlannedCourseCreate,
-    session: AsyncSession = Depends(get_async_session),
-    current_user: AccountOut = Depends(get_current_user)
+    plan_id: int,
+    term_id: int,
+    payload: PlanCourseCreate,
+    db: AsyncSession = Depends(get_db),
+    me: AccountOut = Depends(get_current_user),
 ):
-    """Add a course to a term."""
-    repo = PlanRepository(session)
-    return await repo.add_course(plan_id, term_id, course)
+    repo = PlanRepository(db)
+    plan = await repo.get(plan_id)
+    if not plan or plan.owner_email != me.email:
+        raise HTTPException(status_code=404, detail="Plan not found")
 
-@router.delete("/{plan_id}/terms/{term_id}/courses/{course_id}")
+    term_ids = {t.id for t in await repo.list_terms(plan_id)}
+    if term_id not in term_ids:
+        raise HTTPException(status_code=404, detail="Term not found")
+
+    pc = await repo.add_course(term_id=term_id, course_code=payload.course_code)
+    return {"id": pc.id, "term_id": pc.term_id, "course_code": pc.course_code}
+
+@router.delete("/{plan_id}/terms/{term_id}/courses/{course_code}", status_code=204)
 async def remove_course(
-    plan_id: str,
-    term_id: str,
-    course_id: str,
-    session: AsyncSession = Depends(get_async_session),
-    current_user: AccountOut = Depends(get_current_user)
+    plan_id: int,
+    term_id: int,
+    course_code: str,
+    db: AsyncSession = Depends(get_db),
+    me: AccountOut = Depends(get_current_user),
 ):
-    """Remove a course from a term."""
-    repo = PlanRepository(session)
-    await repo.remove_course(plan_id, term_id, course_id)
-    return {"status": "success"}
+    repo = PlanRepository(db)
+    plan = await repo.get(plan_id)
+    if not plan or plan.owner_email != me.email:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    term_ids = {t.id for t in await repo.list_terms(plan_id)}
+    if term_id not in term_ids:
+        raise HTTPException(status_code=404, detail="Term not found")
+
+    await repo.remove_course(term_id=term_id, course_code=course_code)
+    return None
+
+# ---- Audit + Share stubs ----
+
+@router.get("/{plan_id}/audit")
+async def audit_plan(plan_id: int):
+    # TODO: implement degree audit logic
+    return {"plan_id": plan_id, "status": "audit_stub"}
+
+@router.post("/{plan_id}/share-links")
+async def create_share_link(plan_id: int):
+    # TODO: implement shareable links
+    return {"plan_id": plan_id, "share_url": f"https://example.com/share/{plan_id}"}
