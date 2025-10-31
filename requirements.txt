@@ -17,3 +17,8 @@ flake8
 mypy
 pre-commit
 pyyaml
+PyJWT  
+pydantic[email]
+pwdlib    
+pwdlib[argon2] 
+python-multipart
