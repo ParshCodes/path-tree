@@ -15,12 +15,12 @@ class AccountRepository:
         await self.db.flush()
         return acc
 
-    async def get_by_email(self, email: str) -> Account | None:
+    async def get_by_email(self, email: str) -> Account:
         stmt = select(Account).where(Account.email == email)
         res = await self.db.execute(stmt)
         return res.scalar_one_or_none()
 
-    async def authenticate(self, email: str, password: str) -> Account | None:
+    async def authenticate(self, email: str, password: str) -> Account :
         user = await self.get_by_email(email)
         if not user:
             return None

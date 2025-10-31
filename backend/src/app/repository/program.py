@@ -8,7 +8,7 @@ class ProgramRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def list_programs(self, faculty: str | None, level: str | None) -> list[Program]:
+    async def list_programs(self, faculty: str , level: str ) -> list[Program]:
         stmt = select(Program)
         if faculty:
             stmt = stmt.where(Program.faculty == faculty)
@@ -17,7 +17,7 @@ class ProgramRepository:
         res = await self.db.execute(stmt)
         return list(res.scalars().all())
 
-    async def get_program(self, program_id: str) -> Program | None:
+    async def get_program(self, program_id: str) -> Program :
         return await self.db.get(Program, program_id)
 
     async def list_streams(self, program_id: str) -> list[Stream]:
@@ -25,14 +25,14 @@ class ProgramRepository:
         res = await self.db.execute(stmt)
         return list(res.scalars().all())
 
-    async def list_requirements(self, program_id: str, stream_id: str | None) -> list[ProgramRequirement]:
+    async def list_requirements(self, program_id: str, stream_id: str ) -> list[ProgramRequirement]:
         stmt = select(ProgramRequirement).where(ProgramRequirement.program_id == program_id)
         if stream_id:
             stmt = stmt.where(ProgramRequirement.stream_id == stream_id)
         res = await self.db.execute(stmt)
         return list(res.scalars().all())
 
-    async def create_program(self, *, id: str, title: str, faculty: str | None, level: str | None) -> Program:
+    async def create_program(self, *, id: str, title: str, faculty: str, level: str ) -> Program:
         p = Program(id=id, title=title, faculty=faculty, level=level)
         self.db.add(p)
         await self.db.flush()

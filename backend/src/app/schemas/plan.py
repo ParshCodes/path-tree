@@ -3,18 +3,18 @@ from pydantic import BaseModel, Field
 
 class PlanCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
-    program_id: str | None = None
+    program_id: str  = None
 
 
 class PlanUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=255)
+    name: str  = Field(default=None, min_length=1, max_length=255)
 
 
 class PlanOut(BaseModel):
     id: int
     owner_email: str
     name: str
-    program_id: str | None = None
+    program_id: str  = None
 
 
 class PlanTermCreate(BaseModel):

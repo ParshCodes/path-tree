@@ -11,7 +11,7 @@ class Plan(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     owner_email: Mapped[str] = mapped_column(String(255), index=True)  # simple owner link
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    program_id: Mapped[str | None] = mapped_column(ForeignKey("programs.id"), nullable=True)
+    program_id: Mapped[str] = mapped_column(ForeignKey("programs.id"), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)

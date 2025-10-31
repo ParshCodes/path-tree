@@ -36,8 +36,8 @@ class ProgramRequirement(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     program_id: Mapped[str] = mapped_column(ForeignKey("programs.id", ondelete="CASCADE"))
-    stream_id: Mapped[str | None] = mapped_column(ForeignKey("streams.id", ondelete="CASCADE"), nullable=True)
+    stream_id: Mapped[str] = mapped_column(ForeignKey("streams.id", ondelete="CASCADE"), nullable=True)
     rule: Mapped[str] = mapped_column(Text, nullable=False)  # freeform JSON/text for now
 
     program: Mapped[Program] = relationship(back_populates="requirements")
-    stream: Mapped[Stream | None] = relationship(back_populates="requirements")
+    stream: Mapped[Stream] = relationship(back_populates="requirements")

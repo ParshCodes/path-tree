@@ -13,13 +13,13 @@ class PlanRepository:
         res = await self.db.execute(stmt)
         return list(res.scalars().all())
 
-    async def create_plan(self, owner_email: str, name: str, program_id: str | None) -> Plan:
+    async def create_plan(self, owner_email: str, name: str, program_id: str ) -> Plan:
         plan = Plan(owner_email=owner_email, name=name, program_id=program_id)
         self.db.add(plan)
         await self.db.flush()
         return plan
 
-    async def get(self, plan_id: int) -> Plan | None:
+    async def get(self, plan_id: int) -> Plan :
         return await self.db.get(Plan, plan_id)
 
     async def update_name(self, plan: Plan, name: str) -> Plan:
@@ -27,7 +27,7 @@ class PlanRepository:
         await self.db.flush()
         return plan
 
-    async def delete(self, plan_id: int) -> None:
+    async def delete(self, plan_id: int) :
         stmt = delete(Plan).where(Plan.id == plan_id)
         await self.db.execute(stmt)
 
@@ -50,7 +50,7 @@ class PlanRepository:
         await self.db.flush()
         return pc
 
-    async def remove_course(self, term_id: int, course_code: str) -> None:
+    async def remove_course(self, term_id: int, course_code: str) :
         stmt = delete(PlanCourse).where(
             PlanCourse.term_id == term_id,
             PlanCourse.course_code == course_code,

@@ -14,8 +14,8 @@ router = APIRouter()
 
 @router.get("", response_model=list[ProgramOut])
 async def list_programs(
-    faculty: str | None = None,
-    level: str | None = None,
+    faculty: str  = None,
+    level: str  = None,
     db: AsyncSession = Depends(get_db),
 ):
     repo = ProgramRepository(db)
@@ -39,7 +39,7 @@ async def list_streams(program_id: str, db: AsyncSession = Depends(get_db)):
 @router.get("/{program_id}/requirements", response_model=list[ProgramRequirementOut])
 async def list_requirements(
     program_id: str,
-    stream_id: str | None = None,
+    stream_id: str = None,
     db: AsyncSession = Depends(get_db),
 ):
     repo = ProgramRepository(db)
