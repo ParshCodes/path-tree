@@ -1,48 +1,66 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
 
-from app.core.database import get_async_session
-from app.schemas.program import ProgramOut, StreamOut, ProgramRequirementOut
+from app.core.database import get_db
 from app.repository.program import ProgramRepository
+from app.schemas.program import (
+    ProgramOut,
+    StreamOut,
+    ProgramRequirementOut,
+    ProgramCreate,  
+)
 
-router = APIRouter(prefix="/programs", tags=["programs"])
+router = APIRouter()
 
-@router.get("", response_model=List[ProgramOut])
+
+@router.get("", response_model=list[ProgramOut])
 async def list_programs(
-    session: AsyncSession = Depends(get_async_session)
+    faculty: str | None = None,
+    level: str | None = None,
+    db: AsyncSession = Depends(get_db),
 ):
-    """List all available academic programs."""
-    repo = ProgramRepository(session)
-    return await repo.list_programs()
+    repo = ProgramRepository(db)
+    progs = await repo.list_programs(faculty, level)
+    return [ProgramOut.model_validate(p, from_attributes=True) for p in progs]
+
 
 @router.get("/{program_id}", response_model=ProgramOut)
-async def get_program(
-    program_id: str,
-    session: AsyncSession = Depends(get_async_session)
-):
-    """Get a specific program by ID."""
-    repo = ProgramRepository(session)
-    program = await repo.get_program(program_id)
-    if not program:
+async def get_program(program_id: str, db: AsyncSession = Depends(get_db)):
+    repo = ProgramRepository(db)
+    prog = await repo.get_program(program_id)
+    if not prog:
         raise HTTPException(status_code=404, detail="Program not found")
-    return program
+    return ProgramOut.model_validate(prog, from_attributes=True)
 
-@router.get("/{program_id}/streams", response_model=List[StreamOut])
-async def list_program_streams(
-    program_id: str,
-    session: AsyncSession = Depends(get_async_session)
-):
-    """List all streams for a specific program."""
-    repo = ProgramRepository(session)
-    return await repo.list_program_streams(program_id)
 
-@router.get("/{program_id}/requirements", response_model=List[ProgramRequirementOut])
-async def list_program_requirements(
+@router.get("/{program_id}/streams", response_model=list[StreamOut])
+async def list_streams(program_id: str, db: AsyncSession = Depends(get_db)):
+    repo = ProgramRepository(db)
+    streams = await repo.list_streams(program_id)
+    return [StreamOut.model_validate(s, from_attributes=True) for s in streams]
+
+
+@router.get("/{program_id}/requirements", response_model=list[ProgramRequirementOut])
+async def list_requirements(
     program_id: str,
     stream_id: str | None = None,
-    session: AsyncSession = Depends(get_async_session)
+    db: AsyncSession = Depends(get_db),
 ):
-    """List all requirements for a specific program, optionally filtered by stream."""
-    repo = ProgramRepository(session)
-    return await repo.list_program_requirements(program_id, stream_id)
+    repo = ProgramRepository(db)
+    reqs = await repo.list_requirements(program_id, stream_id)
+    return [ProgramRequirementOut.model_validate(r, from_attributes=True) for r in reqs]
+
+
+#create a program
+@router.post("", response_model=ProgramOut, status_code=status.HTTP_201_CREATED)
+async def create_program(payload: ProgramCreate, db: AsyncSession = Depends(get_db)):
+    repo = ProgramRepository(db)
+    if await repo.get_program(payload.id):
+        raise HTTPException(status_code=409, detail="Program already exists")
+    p = await repo.create_program(
+        id=payload.id,
+        title=payload.title,
+        faculty=payload.faculty,
+        level=payload.level,
+    )
+    return ProgramOut.model_validate(p, from_attributes=True)

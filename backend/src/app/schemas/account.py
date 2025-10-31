@@ -1,22 +1,17 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
-class AccountBase(BaseModel):
+
+class AccountCreate(BaseModel):
     email: EmailStr
+    name: str = Field(min_length=1, max_length=255)
+    password: str = Field(min_length=6, max_length=128)
 
-class AccountCreate(AccountBase):
+
+class LoginRequest(BaseModel):
+    email: EmailStr
     password: str
 
-class AccountOut(AccountBase):
-    id: str
-    role: str = "student"
-    email_verified: bool = False
 
-    class Config:
-        from_attributes = True  
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str = "Bearer"
-
-class TokenPair(Token):
-    refresh_token: str
+class AccountOut(BaseModel):
+    email: EmailStr
+    name: str

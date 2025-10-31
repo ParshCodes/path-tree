@@ -1,21 +1,29 @@
 from pydantic import BaseModel
 
+
 class ProgramOut(BaseModel):
     id: str
-    name: str
-    level: str
-    catalog_year: str
+    title: str
+    faculty: str | None = None
+    level: str | None = None
+
 
 class StreamOut(BaseModel):
     id: str
     program_id: str
     name: str
-    description: str | None = None
+
 
 class ProgramRequirementOut(BaseModel):
-    id: str
+    id: int
     program_id: str
     stream_id: str | None = None
-    kind: str
-    min_units: int
-    rule: dict
+    rule: str
+
+
+# NEW: payload for creating a program
+class ProgramCreate(BaseModel):
+    id: str
+    title: str
+    faculty: str | None = None
+    level: str | None = None
