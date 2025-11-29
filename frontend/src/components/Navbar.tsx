@@ -1,96 +1,46 @@
 "use client";
 
-import Logo from "@/components/Logo";
-import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { LogIn, UserRoundPlus } from "lucide-react";
-import { ThemeSwitcherButton } from "./ThemeSwitcherButton";
-import UserButton from "./UserButton";
 
-const navList = [
-	{
-		label: "Home",
-		link: "/",
-	},
-	{
-		label: "Your Profile",
-		link: "/profile",
-	},
-	{
-		label: "Classes",
-		link: "/classes",
-	},
-	{
-		label: "About",
-		link: "/about",
-	},
+const navItems = [
+  { label: "Home", href: "/" },
+  { label: "Your Profile", href: "/profile" },
+  { label: "Classes", href: "/classes" },
+  { label: "About", href: "/about" },
 ];
 
 export function Navbar() {
-	return (
-		<div className="hidden border-separate border-b bg-secondary md:block">
-			<nav className="container flex items-center px-8">
-				<div className="flex h-[80px] min-h-[60px] items-center gap-x-4">
-					<Logo />
-					<div className="flex h-full">
-						{navList.map((item) => (
-							<NavbarItem
-								key={item.link}
-								link={item.link}
-								label={item.label}
-							/>
-						))}
-					</div>
-				</div>
-				<div className="flex items-center gap-2">
-					<Link href="/sign-in">
-						<Button variant={"ghost"}>
-							<LogIn />
-						</Button>
-					</Link>
-					<Link href="/sign-up">
-						<Button variant={"ghost"}>
-							<UserRoundPlus />
-						</Button>
-					</Link>
+  const pathname = usePathname();
 
-					<ThemeSwitcherButton />
-					<UserButton />
-				</div>
-			</nav>
-		</div>
-	);
-}
+ 
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    return pathname.startsWith(href);
+  };
 
-interface NavbarItemProps {
-	readonly link: string;
-	readonly label: string;
-	readonly clickCallBack?: () => void;
-}
+  return (
+    <header className="border-b bg-background">
+      <nav className="mx-auto flex max-w-6xl items-center justify-center gap-10 py-4">
+        {navItems.map((item) => (
+          <div key={item.href} className="relative">
+            <Link
+              href={item.href}
+              className={cn(
+                "text-lg font-medium text-muted-foreground transition-colors hover:text-foreground",
+                isActive(item.href) && "text-foreground"
+              )}
+            >
+              {item.label}
+            </Link>
 
-function NavbarItem({ link, label, clickCallBack }: NavbarItemProps) {
-	const pathname = usePathname();
-	const isActive = pathname === link;
-	return (
-		<div className="relative flex items-center">
-			<Link
-				href={link}
-				className={cn(
-					buttonVariants({ variant: "ghost" }),
-					"w-full justify-start text-lg text-muted-foreground hover:text-foreground ",
-					isActive && "text-foreground"
-				)}
-				onClick={() => {
-					if (clickCallBack) clickCallBack();
-				}}
-			>
-				{label}
-			</Link>
-			{isActive && (
-				<div className="absolute -bottom-[2px] left-1/2 hidden h-[3px] w-[80%] -translate-x-1/2 rounded-xl bg-amber-500 md:block" />
-			)}
-		</div>
-	);
+            {isActive(item.href) && (
+              <span className="absolute -bottom-1 left-0 h-[2px] w-full rounded-full bg-blue-400" />
+            )}
+          </div>
+        ))}
+      </nav>
+    </header>
+  );
 }

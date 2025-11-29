@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "Budget Buddy 💰",
+	title: "Course Planner",
 	description:
-		"Your personal finance companion app to track expenses, manage budgets, and achieve your financial goals with ease.",
+		"Your personal course companion app to plan your courses, manage schedules, and achieve your academic goals with ease.",
 };
 
 export default function RootLayout({
