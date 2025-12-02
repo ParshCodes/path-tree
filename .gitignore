@@ -1,29 +1,35 @@
-# ---- Python ----
+###############################################
+#                PYTHON BACKEND               #
+###############################################
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Virtual environment
 .venv/
+env/
+venv/
+
+# Python caches
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
 .tox/
 .coverage
+coverage.xml
 htmlcov/
 .pyre/
 .pytype/
 
-# ---- IDE / Editors ----
-.vscode/
-.idea/
-*.sublime-workspace
-*.sublime-project
+# Logs / temp files
+*.log
+*.out
+*.err
+*.tmp
 
-# ---- OS / System ----
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# ---- Distribution / Packaging ----
+# Build/distribution
 build/
 dist/
 *.egg-info/
@@ -31,31 +37,96 @@ dist/
 MANIFEST
 pip-wheel-metadata/
 
-# ---- Logs / Reports ----
-*.log
-*.out
-*.err
-*.tmp
-
-# ---- Test / Coverage ----
-coverage.xml
-*.cover
-.cache/
-
-# ---- Project-specific ----
-# Ignore compiled files or local backend data
-backend/__pycache__/
+# SQLite or local backend files
 backend/*.sqlite3
 backend/tmp/
 backend/logs/
 
-# ---- Dependency / Virtual Environment Files ----
-# requirements.txt and pyproject.toml are tracked intentionally, so don’t ignore them
-# but ignore automatically generated lock or backup files
+# Backup / swap files
 *.lock
 *.bak
 *.swp
 
-# ---- Misc ----
-# Pre-commit cache and related artifacts
+###############################################
+#                NODE / FRONTEND              #
+###############################################
+
+# Node modules
+node_modules/
+
+# Next.js build output
+.next/
+out/
+.next.old/
+
+# Production build artifacts
+*.map
+*.cache
+*.npm
+.npm/
+.pnp.cjs
+.pnp.loader.mjs
+
+# Environment variables for frontend
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Yarn / PNPM / Bun
+yarn-error.log
+yarn-debug.log*
+pnpm-debug.log*
+bun.lockb
+
+# Expo or React Native (if ever used)
+.expo/
+.expo-shared/
+
+###############################################
+#       FRONTEND TOOLS / PACKAGERS            #
+###############################################
+
+# Tailwind / PostCSS caches
+.postcssrc
+.postcss-cache/
+.tailwindcss/
+
+# TypeScript
+*.tsbuildinfo
+
+###############################################
+#                  IDE / OS                   #
+###############################################
+
+# VS Code
+.vscode/
+
+# JetBrains
+.idea/
+*.iml
+
+# Sublime
+*.sublime-workspace
+*.sublime-project
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+###############################################
+#           PROJECT-SPECIFIC EXCLUDES         #
+###############################################
+
+# Draw.io autosave
+*.drawio~*
+
+# Pre-commit stale backups
 .pre-commit-config.yaml.old
+
+# Local cache for diagrams or temp exports
+diagrams/
+export/
