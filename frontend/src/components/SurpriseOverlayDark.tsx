@@ -3,24 +3,22 @@
 import { useEffect, useState } from "react";
 import { Zap } from "lucide-react";
 
-interface SurpriseOverlayProps {
+interface SurpriseOverlayDarkProps {
   trigger: boolean;
   onFlash?: () => void;
 }
 
-export function SurpriseOverlay({ trigger, onFlash }: SurpriseOverlayProps) {
+export function SurpriseOverlayDark({ trigger, onFlash }: SurpriseOverlayDarkProps) {
   const [showIcon, setShowIcon] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
 
   useEffect(() => {
     if (trigger) {
-      // Step 2: show icon
       setShowIcon(true);
 
       const iconTimer = setTimeout(() => {
         setShowIcon(false);
 
-        // Step 3: switch theme + show overlay
         if (onFlash) onFlash();
         setShowOverlay(true);
 
@@ -39,11 +37,11 @@ export function SurpriseOverlay({ trigger, onFlash }: SurpriseOverlayProps) {
     <>
       {showIcon && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <Zap className="h-16 w-16 text-yellow-400 animate-ping" />
+          <Zap className="h-16 w-16 text-gray-800 animate-ping" />
         </div>
       )}
       {showOverlay && (
-        <div className="fixed inset-0 bg-white animate-surprise-fade pointer-events-none z-40" />
+        <div className="fixed inset-0 bg-black animate-surprise-fade-dark pointer-events-none z-40" />
       )}
     </>
   );

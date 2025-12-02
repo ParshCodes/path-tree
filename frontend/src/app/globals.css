@@ -126,14 +126,13 @@
 @tailwind utilities;
 
 @layer utilities {
-  @keyframes surprise-fade {
+  @keyframes flashbang {
     0%   { opacity: 1; }
-    30%  { opacity: 0.9; }
-    60%  { opacity: 0.7; }
+    50%  { opacity: 1; }
     100% { opacity: 0; }
   }
 
-  .animate-surprise-fade {
-    animation: surprise-fade 3s ease-out forwards;
+  .animate-flashbang {
+    animation: flashbang 2s ease-out forwards;
   }
 }
