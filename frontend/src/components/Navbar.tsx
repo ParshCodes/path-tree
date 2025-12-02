@@ -3,13 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
+import { ThemeSwitcherButton } from "@/components/ThemeSwitcherButton"; // ✅ import your theme toggle
 
 const navItems = [
   { label: "Home", href: "/" },
@@ -20,7 +14,6 @@ const navItems = [
 export function Navbar() {
   const pathname = usePathname();
 
- 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
@@ -28,18 +21,27 @@ export function Navbar() {
 
   return (
     <header className="border-b bg-background">
-      <nav className="mx-auto flex max-w-6xl items-center justify-center gap-10 py-4">
-        {navItems.map((item) => (
-          <div key={item.href} className="relative">
-            <Link
-              href={item.href}
-              className={cn(
-                "text-lg font-medium text-muted-foreground transition-colors hover:text-foreground",
-                isActive(item.href) && "text-foreground"
+      <nav className="mx-auto flex max-w-6xl items-center justify-between py-4 px-6">
+        {/* Left side: nav links */}
+        <div className="flex items-center gap-10">
+          {navItems.map((item) => (
+            <div key={item.href} className="relative">
+              <Link
+                href={item.href}
+                className={cn(
+                  "text-lg font-medium text-muted-foreground transition-colors hover:text-foreground",
+                  isActive(item.href) && "text-foreground"
+                )}
+              >
+                {item.label}
+              </Link>
+
+              {isActive(item.href) && (
+                <span className="absolute -bottom-1 left-0 h-[2px] w-full rounded-full bg-blue-400" />
               )}
-            >
-              {item.label}
-            </Link>
+            </div>
+          ))}
+        </div>
 
             {isActive(item.href) && (
               <span className="absolute -bottom-1 left-0 h-[2px] w-full rounded-full bg-blue-400" />
