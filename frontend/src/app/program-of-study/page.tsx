@@ -285,6 +285,44 @@ const StatusIcon = ({ status }: { status: "complete" | "incomplete" | "in-progre
 };
 
 export default function ProgramOfStudyPage() {
+  // Calculate GPA and units from all courses
+  const calculateStats = () => {
+    let totalUnits = 0;
+    let completedUnits = 0;
+    let gradePoints = 0;
+    let gradedUnits = 0;
+
+    const gradeToPoints: { [key: string]: number } = {
+      "A+": 4.0, "A": 4.0, "A-": 3.7,
+      "B+": 3.3, "B": 3.0, "B-": 2.7,
+      "C+": 2.3, "C": 2.0, "C-": 1.7,
+      "D+": 1.3, "D": 1.0, "F": 0.0,
+    };
+
+    MOCK_AUDIT.forEach(req => {
+      req.subRequirements.forEach(subReq => {
+        subReq.courses.forEach(course => {
+          totalUnits += course.units;
+          if (course.status === "completed") {
+            completedUnits += course.units;
+            if (course.grade && gradeToPoints[course.grade] !== undefined) {
+              gradePoints += gradeToPoints[course.grade] * course.units;
+              gradedUnits += course.units;
+            }
+          }
+        });
+      });
+    });
+
+    return {
+      gpa: gradedUnits > 0 ? gradePoints / gradedUnits : 0,
+      completedUnits,
+      totalUnits,
+    };
+  };
+
+  const stats = calculateStats();
+
   const [expandedRequirements, setExpandedRequirements] = useState<Set<string>>(
     new Set(MOCK_AUDIT.map((r) => r.id))
   );
@@ -316,6 +354,16 @@ export default function ProgramOfStudyPage() {
     });
   };
 
+  const expandAll = () => {
+    setExpandedRequirements(new Set(MOCK_AUDIT.map((r) => r.id)));
+    setExpandedSubRequirements(new Set(MOCK_AUDIT.flatMap((r) => r.subRequirements.map((sr) => sr.id))));
+  };
+
+  const collapseAll = () => {
+    setExpandedRequirements(new Set());
+    setExpandedSubRequirements(new Set());
+  };
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto">
@@ -323,6 +371,124 @@ export default function ProgramOfStudyPage() {
           <h1 className="text-4xl font-bold mb-2">Program of Study - Audit Results</h1>
           <p className="text-muted-foreground">Computer Science, B.S.</p>
           <p className="text-sm text-muted-foreground">Student ID: 123456789 | Catalog Year: 2021-2022</p>
+        </div>
+
+        {/* SNAPSHOT - GPA and Units Charts */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-6">SNAPSHOT</h2>
+          <div className="flex flex-wrap gap-12 items-start">
+            {/* Units Chart */}
+            <div className="flex flex-col items-center">
+              <div className="relative">
+                <svg className="w-48 h-48" viewBox="0 0 200 200">
+                  {/* Background circle */}
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r="80"
+                    fill="none"
+                    stroke="#e5e7eb"
+                    strokeWidth="20"
+                  />
+                  {/* Completed units (green) */}
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r="80"
+                    fill="none"
+                    stroke="#22c55e"
+                    strokeWidth="20"
+                    strokeDasharray={`${(stats.completedUnits / stats.totalUnits) * 502.65} 502.65`}
+                    strokeLinecap="round"
+                    transform="rotate(-90 100 100)"
+                  />
+                  {/* In-progress units (orange) - small segment */}
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r="80"
+                    fill="none"
+                    stroke="#f97316"
+                    strokeWidth="20"
+                    strokeDasharray="25 502.65"
+                    strokeDashoffset={-((stats.completedUnits / stats.totalUnits) * 502.65)}
+                    strokeLinecap="round"
+                    transform="rotate(-90 100 100)"
+                  />
+                  {/* Remaining units (blue) */}
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r="80"
+                    fill="none"
+                    stroke="#3b82f6"
+                    strokeWidth="20"
+                    strokeDasharray={`${((stats.totalUnits - stats.completedUnits) / stats.totalUnits) * 502.65 - 25} 502.65`}
+                    strokeDashoffset={-((stats.completedUnits / stats.totalUnits) * 502.65) - 25}
+                    strokeLinecap="round"
+                    transform="rotate(-90 100 100)"
+                  />
+                  {/* Center text */}
+                  <text x="100" y="100" textAnchor="middle" dy="0.3em" className="text-xl font-semibold fill-current">
+                    {stats.completedUnits} Complete
+                  </text>
+                </svg>
+              </div>
+            </div>
+
+            {/* GPA Chart */}
+            <div className="flex flex-col items-center">
+              <div className="relative">
+                <svg className="w-48 h-48" viewBox="0 0 200 200">
+                  {/* Background circle */}
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r="80"
+                    fill="none"
+                    stroke="#e5e7eb"
+                    strokeWidth="20"
+                  />
+                  {/* GPA progress (green) */}
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r="80"
+                    fill="none"
+                    stroke="#22c55e"
+                    strokeWidth="20"
+                    strokeDasharray={`${(stats.gpa / 4.0) * 502.65} 502.65`}
+                    strokeLinecap="round"
+                    transform="rotate(-90 100 100)"
+                  />
+                  {/* Center text */}
+                  <text x="100" y="100" textAnchor="middle" dy="0.3em" className="text-3xl font-semibold fill-current">
+                    {stats.gpa.toFixed(3)}
+                  </text>
+                  <text x="100" y="125" textAnchor="middle" className="text-sm fill-muted-foreground">
+                    GPA
+                  </text>
+                </svg>
+              </div>
+              <div className="mt-4 text-base font-semibold">Maximum 4.0 GPA</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Expand/Collapse Controls */}
+        <div className="mb-6 flex gap-3">
+          <button
+            onClick={expandAll}
+            className="px-4 py-2 text-sm font-medium border rounded-md hover:bg-accent transition-colors"
+          >
+            Expand All
+          </button>
+          <button
+            onClick={collapseAll}
+            className="px-4 py-2 text-sm font-medium border rounded-md hover:bg-accent transition-colors"
+          >
+            Collapse All
+          </button>
         </div>
 
         {/* Audit Requirements */}
