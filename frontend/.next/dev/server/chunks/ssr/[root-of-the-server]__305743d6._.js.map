@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 18, "column": 0}, "map": {"version":3,"sources":["file:///Users/paro/Desktop/path-tree/frontend/src/app/page.tsx"],"sourcesContent":["export default function Home() {\n\treturn <div>Home Page</div>;\n}\n"],"names":[],"mappings":";;;;;;AAAe,SAAS;IACvB,qBAAO,8OAAC;kBAAI;;;;;;AACb"}}]
+}
