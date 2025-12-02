@@ -29,7 +29,7 @@ export function Navbar() {
   return (
     <header className="border-b bg-background">
       <nav className="mx-auto flex max-w-6xl items-center justify-between py-4 px-6">
-        {/* Left side: nav links */}
+        {/* Left side: nav links + Classes dropdown */}
         <div className="flex items-center gap-10">
           {navItems.map((item) => (
             <div key={item.href} className="relative">
@@ -77,8 +77,22 @@ export function Navbar() {
           </DropdownMenu>
         </div>
 
-        {/* Right side: Theme toggle */}
-        <ThemeSwitcherButton />
+        {/* Right side: auth + theme toggle */}
+        <div className="flex items-center gap-3">
+          <Link
+            href="/sign-in"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/sign-up"
+            className="rounded-md border border-blue-500 bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600"
+          >
+            Sign up
+          </Link>
+          <ThemeSwitcherButton />
+        </div>
       </nav>
     </header>
   );
