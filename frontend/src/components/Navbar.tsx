@@ -3,11 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
 const navItems = [
   { label: "Home", href: "/" },
   { label: "Your Profile", href: "/profile" },
-  { label: "Classes", href: "/classes" },
   { label: "About", href: "/about" },
 ];
 
@@ -40,6 +46,31 @@ export function Navbar() {
             )}
           </div>
         ))}
+
+        {/* Classes Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              "flex items-center gap-1 text-lg font-medium text-muted-foreground transition-colors hover:text-foreground outline-none",
+              (pathname.startsWith("/classes") || pathname.startsWith("/program-of-study")) && "text-foreground"
+            )}
+          >
+            Classes
+            <ChevronDown className="h-4 w-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center">
+            <DropdownMenuItem asChild>
+              <Link href="/classes" className="cursor-pointer">
+                Class Search
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/program-of-study" className="cursor-pointer">
+                Program of Study
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </nav>
     </header>
   );
