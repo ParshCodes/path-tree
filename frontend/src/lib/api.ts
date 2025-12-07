@@ -1,53 +1,95 @@
-// frontend/src/lib/api.ts
-const API_BASE_URL =
-	process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import {
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+  clearAuth,
+  type TokenPair,
+} from "./auth";
 
-type SignUpPayload = {
-	name: string;
-	email: string;
-	password: string;
-};
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
-export type AuthTokenResponse = {
-	access_token: string;
-	token_type: string;
-};
+async function refreshAccessToken(): Promise<TokenPair | null> {
+  const refresh = getRefreshToken();
+  if (!refresh) return null;
 
-async function handleResponse(res: Response) {
-	if (!res.ok) {
-		// Try to extract FastAPI error detail
-		let message = "Something went wrong";
-		try {
-			const data = await res.json();
-			if (typeof data.detail === "string") message = data.detail;
-			if (Array.isArray(data.detail) && data.detail[0]?.msg) {
-				message = data.detail[0].msg;
-			}
-		} catch {
-			// ignore JSON parse error
-		}
-		throw new Error(message);
-	}
-	return res.json();
+  const res = await fetch(`${API_BASE}/auth/refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refresh }),
+  });
+
+  if (!res.ok) {
+    clearAuth();
+    return null;
+  }
+
+  const data = (await res.json()) as TokenPair;
+  setTokens(data);
+  return data;
 }
 
-export async function signUp(payload: SignUpPayload) {
-	const res = await fetch(`${API_BASE_URL}/auth/register`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(payload),
-	});
-	return handleResponse(res);
-}
+/**
+ * Authenticated fetch:
+ *  - Attaches access token
+ *  - If 401, tries /auth/refresh once and retries the request
+ */
+export async function apiFetch<T = unknown>(
+  path: string,
+  init: RequestInit = {}
+): Promise<T> {
+  const token = getAccessToken();
 
-export async function signIn(
-	email: string,
-	password: string,
-): Promise<AuthTokenResponse> {
-	const res = await fetch(`${API_BASE_URL}/auth/login-json`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ email, password }),
-	});
-	return handleResponse(res);
+  let headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init.headers as Record<string, string> | undefined),
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const makeRequest = () =>
+    fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers,
+    });
+
+  let res = await makeRequest();
+
+  if (res.status === 401) {
+    // Try refreshing the token once
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      headers = {
+        ...headers,
+        Authorization: `${refreshed.token_type} ${refreshed.access_token}`,
+      };
+      res = await fetch(`${API_BASE}${path}`, {
+        ...init,
+        headers,
+      });
+    } else {
+      throw new Error("Unauthorized");
+    }
+  }
+
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
+  const text = await res.text();
+  let data: any = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+
+  if (!res.ok) {
+    const msg = data?.detail ?? data?.message ?? `${res.status} ${res.statusText}`;
+    throw new Error(msg);
+  }
+
+  return data as T;
 }

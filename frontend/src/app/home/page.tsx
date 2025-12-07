@@ -18,7 +18,7 @@ export default function HomePage() {
           <p>
             Path‑Tree helps you choose your courses and see the graduation paths available to you.
           </p>
-          <button style={styles.cta} onClick={() => router.push("/classes")}>
+          <button style={styles.cta} onClick={() => router.push("/signup")}>
             Start Planning
           </button>
         </section>

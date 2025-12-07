@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { ThemeSwitcherButton } from "@/components/ThemeSwitcherButton";
 import {
@@ -11,6 +12,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import { getUserFirstName, getAccessToken, clearAuth } from "@/lib/auth";
 
 const navItems = [
   { label: "Home", href: "/" },
@@ -18,18 +20,37 @@ const navItems = [
   { label: "About", href: "/about" },
 ];
 
-export function Navbar() {
+export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [firstName, setFirstName] = useState<string | null>(null);
+  const [isAuthed, setIsAuthed] = useState(false);
+
+  useEffect(() => {
+    const token = getAccessToken();
+    if (token) {
+      setIsAuthed(true);
+      setFirstName(getUserFirstName() ?? "Student");
+    } else {
+      setIsAuthed(false);
+      setFirstName(null);
+    }
+  }, [pathname]);
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
   };
 
+  function handleLogout() {
+    clearAuth();
+    router.replace("/login");
+  }
+
   return (
     <header className="border-b bg-background">
       <nav className="mx-auto flex max-w-6xl items-center justify-between py-4 px-6">
-        {/* Left side: nav links + Classes dropdown */}
+        {/* Left side: nav + Classes */}
         <div className="flex items-center gap-10">
           {navItems.map((item) => (
             <div key={item.href} className="relative">
@@ -49,7 +70,6 @@ export function Navbar() {
             </div>
           ))}
 
-          {/* Classes Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger
               className={cn(
@@ -77,20 +97,37 @@ export function Navbar() {
           </DropdownMenu>
         </div>
 
-        {/* Right side: auth + theme toggle */}
+        {/* Right side: auth + theme */}
         <div className="flex items-center gap-3">
-          <Link
-            href="/sign-in"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/sign-up"
-            className="rounded-md border border-blue-500 bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600"
-          >
-            Sign up
-          </Link>
+          {isAuthed && firstName ? (
+            <>
+              <span className="text-sm font-medium">
+                Welcome, {firstName}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-md border border-blue-500 bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600"
+              >
+                Sign up
+              </Link>
+            </>
+          )}
+
           <ThemeSwitcherButton />
         </div>
       </nav>

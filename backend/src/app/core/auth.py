@@ -11,7 +11,8 @@ from app.core.settings import settings
 SECRET_KEY = settings.secret_key
 ALGORITHM = settings.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
-
+REFRESH_SECRET_KEY = settings.refresh_secret_key
+REFRESH_TOKEN_EXPIRE_DAYS = settings.refresh_token_expire_days
 password_hash = PasswordHash.recommended()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/user/login")
