@@ -153,6 +153,101 @@ export const api = {
       return fetchApi<ProgramRequirement[]>(`/programs/${programId}/requirements${query}`);
     },
   },
+
+  // Completions - user's course completion records
+  completions: {
+    list: () => {
+      return apiFetch<any[]>('/completions');
+    },
+
+    create: (data: {
+      course_code: string;
+      status: 'completed' | 'in-progress' | 'planned';
+      grade?: string | null;
+      term_code?: string | null;
+      units_earned?: number | null;
+    }) => {
+      return apiFetch('/completions', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    update: (completionId: number, data: {
+      status?: 'completed' | 'in-progress' | 'planned';
+      grade?: string | null;
+      term_code?: string | null;
+      units_earned?: number | null;
+    }) => {
+      return apiFetch(`/completions/${completionId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+
+    delete: (completionId: number) => {
+      return apiFetch(`/completions/${completionId}`, {
+        method: 'DELETE',
+      });
+    },
+  },
+
+  // Plans - academic plans
+  plans: {
+    list: () => {
+      return apiFetch<any[]>('/plans');
+    },
+
+    create: (data: { name: string; program_id?: string | null }) => {
+      return apiFetch<any>('/plans', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    get: (planId: number) => {
+      return apiFetch<any>(`/plans/${planId}`);
+    },
+
+    update: (planId: number, data: { name?: string }) => {
+      return apiFetch<any>(`/plans/${planId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    },
+
+    delete: (planId: number) => {
+      return apiFetch(`/plans/${planId}`, {
+        method: 'DELETE',
+      });
+    },
+
+    // Terms
+    listTerms: (planId: number) => {
+      return apiFetch<any[]>(`/plans/${planId}/terms`);
+    },
+
+    addTerm: (planId: number, termCode: string) => {
+      return apiFetch<any>(`/plans/${planId}/terms`, {
+        method: 'POST',
+        body: JSON.stringify({ term_code: termCode }),
+      });
+    },
+
+    // Courses
+    addCourse: (planId: number, termId: number, courseCode: string) => {
+      return apiFetch<any>(`/plans/${planId}/terms/${termId}/courses`, {
+        method: 'POST',
+        body: JSON.stringify({ course_code: courseCode }),
+      });
+    },
+
+    removeCourse: (planId: number, termId: number, courseCode: string) => {
+      return apiFetch(`/plans/${planId}/terms/${termId}/courses/${courseCode}`, {
+        method: 'DELETE',
+      });
+    },
+  },
 };
 
 export { ApiError };

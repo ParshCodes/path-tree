@@ -4,3 +4,4 @@ from app.models.account import Account  # noqa: F401
 from app.models.program import Program, Stream, ProgramRequirement  # noqa: F401
 from app.models.course import Course  # noqa: F401
 from app.models.plan import Plan, PlanTerm, PlanCourse  # noqa: F401
+from app.models.completion import Completion  # noqa: F401
