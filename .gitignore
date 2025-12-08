@@ -73,6 +73,9 @@ out/
 .env.test.local
 .env.production.local
 
+# Backend environment
+.env
+
 # Yarn / PNPM / Bun
 yarn-error.log
 yarn-debug.log*

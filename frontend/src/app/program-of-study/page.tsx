@@ -1,278 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, CheckCircle, XCircle, Clock } from "lucide-react";
+import { api } from "@/lib/api";
+import { getAccessToken, getUserFirstName } from "@/lib/auth";
+import type { Program, Requirement, Course, SubRequirement } from "@/types/program";
+import { useRouter } from "next/navigation";
 
-// Types for audit structure
-type Course = {
-  code: string;
-  title: string;
-  units: number;
-  grade?: string;
-  term?: string;
-  status: "completed" | "in-progress" | "not-taken";
-};
 
-type SubRequirement = {
-  id: string;
-  title: string;
-  status: "complete" | "incomplete" | "in-progress";
-  description?: string;
-  courses: Course[];
-};
-
-type Requirement = {
-  id: string;
-  title: string;
-  status: "complete" | "incomplete" | "in-progress";
-  subRequirements: SubRequirement[];
-};
-
-// Mock audit data - Complete structure from PDF
-const MOCK_AUDIT: Requirement[] = [
-  {
-    id: "american-institutions",
-    title: "American Institutions",
-    status: "complete",
-    subRequirements: [
-      {
-        id: "ai-us-history",
-        title: "U.S. History",
-        status: "complete",
-        description: "Complete one course",
-        courses: [
-          { code: "HIST 108", title: "United States History", units: 3, grade: "B+", term: "Fall 2021", status: "completed" },
-        ],
-      },
-      {
-        id: "ai-constitution",
-        title: "U.S. Constitution",
-        status: "complete",
-        description: "Complete one course",
-        courses: [
-          { code: "POLS 103", title: "American Political System", units: 3, grade: "A-", term: "Fall 2021", status: "completed" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "gen-ed",
-    title: "General Education Requirements",
-    status: "in-progress",
-    subRequirements: [
-      {
-        id: "ge-foundation",
-        title: "Foundations of Learning",
-        status: "complete",
-        description: "Complete all foundation courses (Oral Communication, Written Communication, Critical Thinking, Quantitative Reasoning)",
-        courses: [
-          { code: "ENGL 101", title: "Composition", units: 3, grade: "A", term: "Fall 2021", status: "completed" },
-          { code: "COMM 103", title: "Oral Communication", units: 3, grade: "B+", term: "Fall 2021", status: "completed" },
-          { code: "PHIL 101", title: "Critical Thinking", units: 3, grade: "A-", term: "Spring 2022", status: "completed" },
-          { code: "MATH 150", title: "Calculus I", units: 4, grade: "B+", term: "Fall 2021", status: "completed" },
-        ],
-      },
-      {
-        id: "ge-explorations",
-        title: "Explorations of Creativity and Culture",
-        status: "complete",
-        description: "Complete 9 units from at least two areas (Arts, Humanities, Languages)",
-        courses: [
-          { code: "ART 157", title: "Visual Culture", units: 3, grade: "B", term: "Spring 2022", status: "completed" },
-          { code: "MUS 102", title: "Music Appreciation", units: 3, grade: "A", term: "Fall 2022", status: "completed" },
-          { code: "LIT 201", title: "World Literature", units: 3, grade: "B+", term: "Fall 2022", status: "completed" },
-        ],
-      },
-      {
-        id: "ge-social-sciences",
-        title: "Social and Behavioral Sciences",
-        status: "complete",
-        description: "Complete 9 units from at least two disciplines",
-        courses: [
-          { code: "PSYCH 101", title: "Introduction to Psychology", units: 3, grade: "A", term: "Spring 2022", status: "completed" },
-          { code: "SOC 101", title: "Principles of Sociology", units: 3, grade: "B+", term: "Fall 2022", status: "completed" },
-          { code: "ECON 102", title: "Principles of Microeconomics", units: 3, grade: "A-", term: "Spring 2023", status: "completed" },
-        ],
-      },
-      {
-        id: "ge-life-sciences",
-        title: "Life Sciences",
-        status: "complete",
-        description: "Complete one course with lab",
-        courses: [
-          { code: "BIOL 100", title: "Biology and Society", units: 3, grade: "B", term: "Fall 2022", status: "completed" },
-          { code: "BIOL 100L", title: "Biology Lab", units: 1, grade: "B", term: "Fall 2022", status: "completed" },
-        ],
-      },
-      {
-        id: "ge-physical-sciences",
-        title: "Physical Sciences",
-        status: "in-progress",
-        description: "Complete one course with lab",
-        courses: [
-          { code: "PHYS 195", title: "Physics for Scientists I", units: 3, grade: "IP", term: "Spring 2024", status: "in-progress" },
-          { code: "PHYS 195L", title: "Physics Lab I", units: 1, term: "Spring 2024", status: "not-taken" },
-        ],
-      },
-      {
-        id: "ge-integration",
-        title: "Integration",
-        status: "incomplete",
-        description: "Complete upper-division GE integration course",
-        courses: [
-          { code: "GEN 300", title: "Global Perspectives", units: 3, term: "Fall 2024", status: "not-taken" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "major-prep",
-    title: "Major Preparation Courses",
-    status: "complete",
-    subRequirements: [
-      {
-        id: "prep-math",
-        title: "Mathematics Preparation",
-        status: "complete",
-        description: "Complete required mathematics sequence",
-        courses: [
-          { code: "MATH 150", title: "Calculus I", units: 4, grade: "B+", term: "Fall 2021", status: "completed" },
-          { code: "MATH 151", title: "Calculus II", units: 4, grade: "A-", term: "Spring 2022", status: "completed" },
-          { code: "MATH 245", title: "Discrete Mathematics", units: 3, grade: "A", term: "Fall 2022", status: "completed" },
-        ],
-      },
-      {
-        id: "prep-cs-lower",
-        title: "Lower Division Computer Science",
-        status: "complete",
-        description: "Complete foundational CS courses",
-        courses: [
-          { code: "CS 107", title: "Intro to Computer Science", units: 3, grade: "A", term: "Fall 2021", status: "completed" },
-          { code: "CS 108", title: "Object-Oriented Programming", units: 3, grade: "A-", term: "Spring 2022", status: "completed" },
-          { code: "CS 210", title: "Data Structures", units: 3, grade: "B+", term: "Fall 2022", status: "completed" },
-          { code: "CS 237", title: "Computer Organization", units: 3, grade: "A", term: "Spring 2023", status: "completed" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "major-core",
-    title: "Major Core Requirements",
-    status: "in-progress",
-    subRequirements: [
-      {
-        id: "core-required",
-        title: "Required Core Courses",
-        status: "in-progress",
-        description: "Complete all core courses with C or better",
-        courses: [
-          { code: "CS 310", title: "Data Structures & Algorithms", units: 3, grade: "A", term: "Fall 2023", status: "completed" },
-          { code: "CS 320", title: "Programming Languages", units: 3, grade: "B+", term: "Spring 2023", status: "completed" },
-          { code: "CS 330", title: "Computer Architecture", units: 3, grade: "IP", term: "Spring 2024", status: "in-progress" },
-          { code: "CS 340", title: "Operating Systems", units: 3, term: "Fall 2024", status: "not-taken" },
-          { code: "CS 350", title: "Software Engineering", units: 3, term: "Fall 2024", status: "not-taken" },
-          { code: "CS 370", title: "Theory of Computation", units: 3, term: "Spring 2025", status: "not-taken" },
-        ],
-      },
-      {
-        id: "core-lab",
-        title: "Laboratory Requirement",
-        status: "in-progress",
-        description: "Complete one advanced lab course",
-        courses: [
-          { code: "CS 460L", title: "Database Systems Lab", units: 1, grade: "IP", term: "Spring 2024", status: "in-progress" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "major-electives",
-    title: "Major Electives",
-    status: "incomplete",
-    subRequirements: [
-      {
-        id: "electives-upper",
-        title: "Upper Division Electives",
-        status: "incomplete",
-        description: "Complete 15 units from approved upper-division CS electives",
-        courses: [
-          { code: "CS 460", title: "Database Systems", units: 3, grade: "A", term: "Fall 2023", status: "completed" },
-          { code: "CS 465", title: "Computer Networks", units: 3, grade: "B+", term: "Spring 2023", status: "completed" },
-          { code: "CS 470", title: "Artificial Intelligence", units: 3, term: "Fall 2024", status: "not-taken" },
-          { code: "CS 480", title: "Machine Learning", units: 3, term: "Spring 2025", status: "not-taken" },
-          { code: "CS 496", title: "Senior Project", units: 3, term: "Spring 2025", status: "not-taken" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "upper-division-writing",
-    title: "Upper Division Writing Requirement",
-    status: "incomplete",
-    subRequirements: [
-      {
-        id: "udwr-course",
-        title: "Writing Intensive Course",
-        status: "incomplete",
-        description: "Complete one upper-division writing intensive course",
-        courses: [
-          { code: "CS 499W", title: "Technical Writing for CS", units: 3, term: "Fall 2024", status: "not-taken" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "multicultural",
-    title: "Multicultural Requirement",
-    status: "complete",
-    subRequirements: [
-      {
-        id: "multicultural-course",
-        title: "Multicultural/International Course",
-        status: "complete",
-        description: "Complete one approved multicultural or international course",
-        courses: [
-          { code: "AFRAM 200", title: "African American Studies", units: 3, grade: "A-", term: "Spring 2022", status: "completed" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "additional-requirements",
-    title: "Additional Graduation Requirements",
-    status: "in-progress",
-    subRequirements: [
-      {
-        id: "residency",
-        title: "Residency Requirement",
-        status: "in-progress",
-        description: "Complete at least 30 units at SDSU",
-        courses: [
-          { code: "N/A", title: "Progress: 84 of 120 units completed at SDSU", units: 84, grade: "IP", term: "Current", status: "in-progress" },
-        ],
-      },
-      {
-        id: "gpa",
-        title: "GPA Requirements",
-        status: "in-progress",
-        description: "Maintain minimum 2.0 overall GPA and 2.5 major GPA",
-        courses: [
-          { code: "N/A", title: "Overall GPA: 3.45 | Major GPA: 3.62", units: 0, grade: "PASS", term: "Current", status: "completed" },
-        ],
-      },
-      {
-        id: "units",
-        title: "Unit Requirements",
-        status: "in-progress",
-        description: "Complete minimum 120 units for degree",
-        courses: [
-          { code: "N/A", title: "Progress: 84 of 120 units completed", units: 84, grade: "IP", term: "Current", status: "in-progress" },
-        ],
-      },
-    ],
-  },
-];
 
 // Status icon component
 const StatusIcon = ({ status }: { status: "complete" | "incomplete" | "in-progress" }) => {
@@ -285,6 +21,79 @@ const StatusIcon = ({ status }: { status: "complete" | "incomplete" | "in-progre
 };
 
 export default function ProgramOfStudyPage() {
+  const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [auditData, setAuditData] = useState<Requirement[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Check authentication on mount
+  useEffect(() => {
+    const token = getAccessToken();
+    const name = getUserFirstName();
+    
+    if (!token) {
+      setIsLoggedIn(false);
+      setLoading(false);
+      return;
+    }
+    
+    setIsLoggedIn(true);
+    setUserName(name);
+    
+    // Fetch programs for logged-in users
+    const fetchPrograms = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const programList = await api.programs.list();
+        setPrograms(programList);
+        
+        // Auto-select first program if available
+        if (programList.length > 0) {
+          setSelectedProgram(programList[0]);
+        }
+      } catch (err: any) {
+        console.error('Failed to fetch programs:', err);
+        setError(err.message || 'Failed to load programs');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPrograms();
+  }, []);
+
+  // Fetch program requirements when program changes
+  useEffect(() => {
+    if (!isLoggedIn || !selectedProgram) return;
+
+    const fetchProgramData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch requirements for the selected program
+        const requirements = await api.programs.getRequirements(selectedProgram.id);
+        
+        // Transform backend data to audit structure
+        // For now, this will be empty until backend provides course data
+        setAuditData([]);
+        console.log('Program requirements:', requirements);
+      } catch (err: any) {
+        console.error('Failed to fetch program data:', err);
+        setError(err.message || 'Failed to load program data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProgramData();
+  }, [isLoggedIn, selectedProgram]);
+
   // Calculate GPA and units from all courses
   const calculateStats = () => {
     let totalUnits = 0;
@@ -299,9 +108,9 @@ export default function ProgramOfStudyPage() {
       "D+": 1.3, "D": 1.0, "F": 0.0,
     };
 
-    MOCK_AUDIT.forEach(req => {
-      req.subRequirements.forEach(subReq => {
-        subReq.courses.forEach(course => {
+    auditData.forEach((req: Requirement) => {
+      req.subRequirements.forEach((subReq: SubRequirement) => {
+        subReq.courses.forEach((course: Course) => {
           totalUnits += course.units;
           if (course.status === "completed") {
             completedUnits += course.units;
@@ -324,10 +133,10 @@ export default function ProgramOfStudyPage() {
   const stats = calculateStats();
 
   const [expandedRequirements, setExpandedRequirements] = useState<Set<string>>(
-    new Set(MOCK_AUDIT.map((r) => r.id))
+    new Set(auditData.map((r) => r.id))
   );
   const [expandedSubRequirements, setExpandedSubRequirements] = useState<Set<string>>(
-    new Set(MOCK_AUDIT.flatMap((r) => r.subRequirements.map((sr) => sr.id)))
+    new Set(auditData.flatMap((r) => r.subRequirements.map((sr) => sr.id)))
   );
 
   const toggleRequirement = (id: string) => {
@@ -355,8 +164,8 @@ export default function ProgramOfStudyPage() {
   };
 
   const expandAll = () => {
-    setExpandedRequirements(new Set(MOCK_AUDIT.map((r) => r.id)));
-    setExpandedSubRequirements(new Set(MOCK_AUDIT.flatMap((r) => r.subRequirements.map((sr) => sr.id))));
+    setExpandedRequirements(new Set(auditData.map((r) => r.id)));
+    setExpandedSubRequirements(new Set(auditData.flatMap((r) => r.subRequirements.map((sr) => sr.id))));
   };
 
   const collapseAll = () => {
@@ -369,12 +178,83 @@ export default function ProgramOfStudyPage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Program of Study - Audit Results</h1>
-          <p className="text-muted-foreground">Computer Science, B.S.</p>
-          <p className="text-sm text-muted-foreground">Student ID: 123456789 | Catalog Year: 2021-2022</p>
+          {userName && (
+            <p className="text-muted-foreground">Welcome, {userName}!</p>
+          )}
         </div>
 
-        {/* SNAPSHOT - GPA and Units Charts */}
-        <div className="mb-8">
+        {/* Not Logged In State */}
+        {!isLoggedIn && !loading && (
+          <div className="text-center py-16">
+            <div className="mb-6">
+              <XCircle className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-2xl font-semibold mb-2">Authentication Required</h2>
+              <p className="text-muted-foreground mb-6">
+                Please log in to view your program of study and course audit.
+              </p>
+              <button
+                onClick={() => router.push('/login')}
+                className="px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Go to Login
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {isLoggedIn && loading && (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Loading your program data...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {isLoggedIn && error && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
+            <p className="text-red-800 dark:text-red-200">Error: {error}</p>
+          </div>
+        )}
+
+        {/* No Courses Yet */}
+        {isLoggedIn && !loading && auditData.length === 0 && !error && (
+          <div className="text-center py-16">
+            <div className="mb-6">
+              <Clock className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-2xl font-semibold mb-2">No Course Data Yet</h2>
+              <p className="text-muted-foreground mb-6">
+                You don't have any courses recorded in your program yet. Check back later or contact your advisor.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Program Content - Only show if logged in and has data */}
+        {isLoggedIn && !loading && auditData.length > 0 && (
+          <>
+            {/* Program Selector */}
+            {programs.length > 0 && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">Select Program:</label>
+                <select
+                  value={selectedProgram?.id || ''}
+                  onChange={(e) => {
+                    const program = programs.find(p => p.id === e.target.value);
+                    setSelectedProgram(program || null);
+                  }}
+                  className="px-4 py-2 border rounded-md bg-background"
+                >
+                  {programs.map((program) => (
+                    <option key={program.id} value={program.id}>
+                      {program.title} ({program.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* SNAPSHOT - GPA and Units Charts */}
+            <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-6">SNAPSHOT</h2>
           <div className="flex flex-wrap gap-12 items-start">
             {/* Units Chart */}
@@ -493,7 +373,7 @@ export default function ProgramOfStudyPage() {
 
         {/* Audit Requirements */}
         <div className="space-y-4">
-          {MOCK_AUDIT.map((requirement) => (
+          {auditData.map((requirement) => (
             <div key={requirement.id} className="border rounded-lg bg-card">
               {/* Requirement Header */}
               <button
@@ -594,6 +474,8 @@ export default function ProgramOfStudyPage() {
             </div>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );
