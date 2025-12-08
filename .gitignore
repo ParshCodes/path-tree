@@ -50,11 +50,23 @@ backend/tmp/
 backend/logs/
 
 # ---- Dependency / Virtual Environment Files ----
-# requirements.txt and pyproject.toml are tracked intentionally, so don’t ignore them
+# requirements.txt and pyproject.toml are tracked intentionally, so don't ignore them
 # but ignore automatically generated lock or backup files
 *.lock
 *.bak
 *.swp
+
+# ---- Frontend ----
+node_modules/
+.next/
+out/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ---- Backend ----
+.env
 
 # ---- Misc ----
 # Pre-commit cache and related artifacts

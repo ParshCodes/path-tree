@@ -1,33 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, CheckCircle, XCircle, Clock } from "lucide-react";
-
-// Types for audit structure
-type Course = {
-  code: string;
-  title: string;
-  units: number;
-  grade?: string;
-  term?: string;
-  status: "completed" | "in-progress" | "not-taken";
-};
-
-type SubRequirement = {
-  id: string;
-  title: string;
-  status: "complete" | "incomplete" | "in-progress";
-  description?: string;
-  courses: Course[];
-};
-
-type Requirement = {
-  id: string;
-  title: string;
-  status: "complete" | "incomplete" | "in-progress";
-  subRequirements: SubRequirement[];
-};
+import { api } from "@/lib/api";
+import type { Program, Requirement, Course, SubRequirement } from "@/types/program";
 
 // Mock audit data - Complete structure from PDF
 const MOCK_AUDIT: Requirement[] = [
@@ -285,6 +262,70 @@ const StatusIcon = ({ status }: { status: "complete" | "incomplete" | "in-progre
 };
 
 export default function ProgramOfStudyPage() {
+  const [auditData, setAuditData] = useState<Requirement[]>(MOCK_AUDIT);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch programs on mount
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const programList = await api.programs.list();
+        setPrograms(programList);
+        
+        // Auto-select first program if available
+        if (programList.length > 0) {
+          setSelectedProgram(programList[0]);
+        }
+      } catch (err: any) {
+        console.error('Failed to fetch programs:', err);
+        // Don't show error if backend is not available - just use mock data
+        // setError(err.message || 'Failed to load programs');
+        console.warn('Backend not available, using mock data only');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPrograms();
+  }, []);
+
+  // Fetch program requirements when program changes
+  useEffect(() => {
+    const fetchProgramData = async () => {
+      if (!selectedProgram) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch requirements for the selected program
+        const requirements = await api.programs.getRequirements(selectedProgram.id);
+        
+        // For now, keep using mock data structure until backend provides full audit data
+        // In production, you would transform requirements into the audit structure
+        console.log('Program requirements:', requirements);
+        
+        // Keep mock data for now - you'll need to update backend to return full audit structure
+        setAuditData(MOCK_AUDIT);
+      } catch (err: any) {
+        console.error('Failed to fetch program data:', err);
+        // Don't show error if backend is not available - just use mock data
+        // setError(err.message || 'Failed to load program data');
+        console.warn('Backend not available, using mock data only');
+        setAuditData(MOCK_AUDIT);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProgramData();
+  }, [selectedProgram]);
+
   // Calculate GPA and units from all courses
   const calculateStats = () => {
     let totalUnits = 0;
@@ -324,10 +365,10 @@ export default function ProgramOfStudyPage() {
   const stats = calculateStats();
 
   const [expandedRequirements, setExpandedRequirements] = useState<Set<string>>(
-    new Set(MOCK_AUDIT.map((r) => r.id))
+    new Set(auditData.map((r) => r.id))
   );
   const [expandedSubRequirements, setExpandedSubRequirements] = useState<Set<string>>(
-    new Set(MOCK_AUDIT.flatMap((r) => r.subRequirements.map((sr) => sr.id)))
+    new Set(auditData.flatMap((r) => r.subRequirements.map((sr) => sr.id)))
   );
 
   const toggleRequirement = (id: string) => {
@@ -355,8 +396,8 @@ export default function ProgramOfStudyPage() {
   };
 
   const expandAll = () => {
-    setExpandedRequirements(new Set(MOCK_AUDIT.map((r) => r.id)));
-    setExpandedSubRequirements(new Set(MOCK_AUDIT.flatMap((r) => r.subRequirements.map((sr) => sr.id))));
+    setExpandedRequirements(new Set(auditData.map((r) => r.id)));
+    setExpandedSubRequirements(new Set(auditData.flatMap((r) => r.subRequirements.map((sr) => sr.id))));
   };
 
   const collapseAll = () => {
@@ -369,9 +410,46 @@ export default function ProgramOfStudyPage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Program of Study - Audit Results</h1>
-          <p className="text-muted-foreground">Computer Science, B.S.</p>
+          <p className="text-muted-foreground">
+            {selectedProgram ? `${selectedProgram.title}` : 'Computer Science, B.S.'}
+          </p>
           <p className="text-sm text-muted-foreground">Student ID: 123456789 | Catalog Year: 2021-2022</p>
         </div>
+
+        {/* Program Selector */}
+        {programs.length > 0 && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Select Program:</label>
+            <select
+              value={selectedProgram?.id || ''}
+              onChange={(e) => {
+                const program = programs.find(p => p.id === e.target.value);
+                setSelectedProgram(program || null);
+              }}
+              className="px-4 py-2 border rounded-md bg-background"
+            >
+              {programs.map((program) => (
+                <option key={program.id} value={program.id}>
+                  {program.title} ({program.id})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Loading program data...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
+            <p className="text-red-800 dark:text-red-200">Error: {error}</p>
+          </div>
+        )}
 
         {/* SNAPSHOT - GPA and Units Charts */}
         <div className="mb-8">
@@ -493,7 +571,7 @@ export default function ProgramOfStudyPage() {
 
         {/* Audit Requirements */}
         <div className="space-y-4">
-          {MOCK_AUDIT.map((requirement) => (
+          {auditData.map((requirement) => (
             <div key={requirement.id} className="border rounded-lg bg-card">
               {/* Requirement Header */}
               <button
