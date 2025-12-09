@@ -15,7 +15,7 @@ export default function AboutPage() {
 
             <div className="relative mb-4 h-64 w-full overflow-hidden rounded border">
               <Image
-                src="/team.jpg"
+                src="/team-updated.jpg"
                 alt="Picture of us"
                 fill
                 className="object-cover"
