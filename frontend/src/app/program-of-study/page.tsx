@@ -76,13 +76,13 @@ export default function ProgramOfStudyPage() {
         setLoading(true);
         setError(null);
         
-        // Fetch requirements for the selected program
-        const requirements = await api.programs.getRequirements(selectedProgram.id);
+        // Fetch user's course completions
+        const completionsData = await api.completions.list();
         
-        // Transform backend data to audit structure
-        // For now, this will be empty until backend provides course data
-        setAuditData([]);
-        console.log('Program requirements:', requirements);
+        // Transform completions into audit structure by grouping
+        const transformedAudit = transformCompletionsToAudit(completionsData);
+        setAuditData(transformedAudit);
+        
       } catch (err: any) {
         console.error('Failed to fetch program data:', err);
         setError(err.message || 'Failed to load program data');
@@ -93,6 +93,70 @@ export default function ProgramOfStudyPage() {
 
     fetchProgramData();
   }, [isLoggedIn, selectedProgram]);
+
+  // Helper function to transform completions into audit format
+  const transformCompletionsToAudit = (completions: any[]): Requirement[] => {
+    if (completions.length === 0) return [];
+
+    // Group courses by category
+    const categories: { [key: string]: any[] } = {
+      'EE Core': [],
+      'Mathematics': [],
+      'Physics': [],
+      'Computer Science': [],
+      'General Education': [],
+      'Other': [],
+    };
+
+    completions.forEach((completion: any) => {
+      const courseData = {
+        code: completion.course_code,
+        title: '', // Would need to look up from courses table
+        units: completion.units_earned || 3,
+        grade: completion.grade || '',
+        term: completion.term_code || '',
+        status: completion.status,
+      };
+
+      if (completion.course_code.startsWith('EE')) {
+        categories['EE Core'].push(courseData);
+      } else if (completion.course_code.startsWith('MATH')) {
+        categories['Mathematics'].push(courseData);
+      } else if (completion.course_code.startsWith('PHYS')) {
+        categories['Physics'].push(courseData);
+      } else if (completion.course_code.startsWith('CS')) {
+        categories['Computer Science'].push(courseData);
+      } else if (['ENGL', 'COMM', 'HIST', 'PSYCH', 'SOC', 'ART', 'MUS', 'PHIL', 'ECON'].some(prefix => completion.course_code.startsWith(prefix))) {
+        categories['General Education'].push(courseData);
+      } else {
+        categories['Other'].push(courseData);
+      }
+    });
+
+    // Convert to Requirement structure
+    const requirements: Requirement[] = [];
+    Object.entries(categories).forEach(([categoryName, courses]) => {
+      if (courses.length > 0) {
+        const completedCount = courses.filter((c: any) => c.status === 'completed').length;
+        const status = completedCount === courses.length ? 'complete' : completedCount > 0 ? 'in-progress' : 'incomplete';
+        
+        requirements.push({
+          id: categoryName.toLowerCase().replace(/\s+/g, '-'),
+          title: categoryName,
+          status: status as 'complete' | 'incomplete' | 'in-progress',
+          subRequirements: [{
+            id: `${categoryName.toLowerCase().replace(/\s+/g, '-')}-courses`,
+            title: `${categoryName} Courses`,
+            status: status as 'complete' | 'incomplete' | 'in-progress',
+            description: `${courses.length} courses`,
+            courses: courses,
+          }],
+        });
+      }
+    });
+
+    return requirements;
+  };
 
   // Calculate GPA and units from all courses
   const calculateStats = () => {

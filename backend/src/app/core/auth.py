@@ -31,11 +31,13 @@ def create_access_token(data: dict, expires_delta: timedelta ) -> str:
     """
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now() + expires_delta
+        expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.now() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    print(f"DEBUG create_access_token: Created token expiring at {expire} UTC")
+    return encoded_jwt
 
 
 def get_password_hash(password: str) -> str:
@@ -76,12 +78,18 @@ def verify_token(token: str) -> dict :
         dict | None: The decoded payload if valid, None otherwise
     """
     try:
+        print(f"DEBUG verify_token: Using secret_key={settings.secret_key[:10]}..., algorithm={settings.algorithm}")
         payload = jwt.decode(
             token,
             settings.secret_key,
             algorithms=[settings.algorithm],
         )
-    except PyJWTError:
+        print(f"DEBUG verify_token: Successfully decoded token, payload={payload}")
+    except PyJWTError as e:
+        print(f"DEBUG verify_token: PyJWTError - {type(e).__name__}: {e}")
+        return None
+    except Exception as e:
+        print(f"DEBUG verify_token: Unexpected error - {type(e).__name__}: {e}")
         return None
     else:
         return payload
@@ -120,9 +128,9 @@ def create_refresh_token(data: dict, expires_delta: timedelta ) -> str:
     """
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now() + expires_delta
+        expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.now() + timedelta(days=7)
+        expire = datetime.utcnow() + timedelta(days=7)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 

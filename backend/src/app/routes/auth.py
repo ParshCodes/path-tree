@@ -2,13 +2,22 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+import jwt
+from jwt import PyJWTError
 
 from app.core.auth import create_access_token,create_refresh_token, oauth2_scheme
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.settings import settings
 from app.repository.account import AccountRepository
 from app.schemas.account import AccountCreate, AccountOut, LoginRequest
 from app.schemas.token import Token, RefreshRequest
+
+# Constants from settings
+REFRESH_SECRET_KEY = settings.refresh_secret_key
+ALGORITHM = settings.algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
+REFRESH_TOKEN_EXPIRE_DAYS = settings.refresh_token_expire_days
 
 router = APIRouter()
 

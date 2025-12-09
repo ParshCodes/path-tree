@@ -104,6 +104,25 @@ async def add_term(
     term = await repo.add_term(plan_id, payload.term_code)
     return PlanTermOut.model_validate(term, from_attributes=True)
 
+@router.delete("/{plan_id}/terms/{term_id}", status_code=204)
+async def delete_term(
+    plan_id: int,
+    term_id: int,
+    db: AsyncSession = Depends(get_db),
+    me: AccountOut = Depends(get_current_user),
+):
+    repo = PlanRepository(db)
+    plan = await repo.get(plan_id)
+    if not plan or plan.owner_email != me.email:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    term_ids = {t.id for t in await repo.list_terms(plan_id)}
+    if term_id not in term_ids:
+        raise HTTPException(status_code=404, detail="Term not found")
+    
+    await repo.delete_term(term_id)
+    return None
+
 @router.post("/{plan_id}/terms/{term_id}/courses", status_code=201)
 async def add_course(
     plan_id: int,

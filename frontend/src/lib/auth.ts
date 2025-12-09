@@ -37,6 +37,8 @@ export function getUserFirstName(): string | null {
 }
 
 export function clearAuth() {
+  console.log("clearAuth() called - Stack trace:");
+  console.trace();
   if (typeof window === "undefined") return;
   localStorage.removeItem(ACCESS);
   localStorage.removeItem(REFRESH);
