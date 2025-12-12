@@ -13,7 +13,7 @@ logger = logging.getLogger("uvicorn")
 app = FastAPI(title=settings.app_name, version=settings.app_version)
 
 # CORS
-origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+origins = ["http://localhost:3000"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins or ["*"],

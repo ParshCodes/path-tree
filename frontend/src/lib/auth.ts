@@ -1,34 +1,27 @@
-const ACCESS = "access_token";
 const REFRESH = "refresh_token";
-const TYPE = "token_type";
 const USERNAME = "user_first_name";
 
 export type TokenPair = {
-  access_token: string;
+  access_token?: string;  // can be optional/ignored now
   refresh_token: string;
-  token_type: string; // "bearer"
+  token_type: string;
 };
 
 export function setTokens(tokens: TokenPair) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(ACCESS, tokens.access_token);
-  localStorage.setItem(REFRESH, tokens.refresh_token);
-  localStorage.setItem(TYPE, tokens.token_type);
-}
-
-export function setUserFirstName(firstName: string) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(USERNAME, firstName);
-}
-
-export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACCESS);
+  if (tokens.refresh_token) {
+    localStorage.setItem(REFRESH, tokens.refresh_token);
+  }
 }
 
 export function getRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(REFRESH);
+}
+
+export function setUserFirstName(name: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(USERNAME, name);
 }
 
 export function getUserFirstName(): string | null {
@@ -37,11 +30,7 @@ export function getUserFirstName(): string | null {
 }
 
 export function clearAuth() {
-  console.log("clearAuth() called - Stack trace:");
-  console.trace();
   if (typeof window === "undefined") return;
-  localStorage.removeItem(ACCESS);
   localStorage.removeItem(REFRESH);
-  localStorage.removeItem(TYPE);
   localStorage.removeItem(USERNAME);
 }

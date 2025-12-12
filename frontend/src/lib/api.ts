@@ -1,5 +1,4 @@
 import {
-  getAccessToken,
   getRefreshToken,
   setTokens,
   clearAuth,
@@ -7,130 +6,98 @@ import {
 } from "./auth";
 
 import type { Program, Stream, ProgramRequirement } from '@/types/program';
-
+type MeResponse = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  email_verified: boolean;
+  created_at: string;
+};
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
 async function refreshAccessToken(): Promise<TokenPair | null> {
-  const refresh = getRefreshToken();
-  if (!refresh) return null;
-
-  const res = await fetch(`${API_BASE}/auth/refresh`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token: refresh }),
-  });
-
-  if (!res.ok) {
-    clearAuth();
-    return null;
-  }
-
-  const data = (await res.json()) as TokenPair;
-  setTokens(data);
-  return data;
+  // Temporarily disable refresh-based re-login to avoid automatic login after logout
+  clearAuth();
+  return null;
 }
-
-/**
- * Authenticated fetch:
- *  - Attaches access token
- *  - If 401, tries /auth/refresh once and retries the request
- */
-export async function apiFetch<T = unknown>(
+async function apiFetch<T = unknown>(
   path: string,
   init: RequestInit = {}
 ): Promise<T> {
-  const token = getAccessToken();
-
   let headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(init.headers as Record<string, string> | undefined),
   };
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
   const makeRequest = () =>
     fetch(`${API_BASE}${path}`, {
       ...init,
       headers,
+      credentials: "include", // 👈 send cookies
     });
 
   let res = await makeRequest();
 
-  if (res.status === 401) {
-    // Try refreshing the token once
+  // Do not auto-refresh for /auth/me; that endpoint is our "am I logged in?" check
+  const shouldAttemptRefresh = !path.startsWith("/auth/me");
+
+  if (res.status === 401 && shouldAttemptRefresh) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
-      headers = {
-        ...headers,
-        Authorization: `${refreshed.token_type} ${refreshed.access_token}`,
-      };
+      // Cookie was refreshed on backend; just retry
       res = await fetch(`${API_BASE}${path}`, {
         ...init,
         headers,
+        credentials: "include",
       });
     } else {
+      clearAuth();
       throw new Error("Unauthorized");
     }
+  }
+
+  if (!res.ok) {
+    const msg = await res.text();
+    throw new Error(msg || `HTTP ${res.status}`);
   }
 
   if (res.status === 204) {
     return undefined as T;
   }
 
-  const text = await res.text();
-  let data: any = null;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text;
-  }
-
-  if (!res.ok) {
-    const msg = data?.detail ?? data?.message ?? `${res.status} ${res.statusText}`;
-    throw new Error(msg);
-  }
-
+  const data = await res.json();
   return data as T;
 }
-
 // Programs API - can work without authentication
-class ApiError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
 
 async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${API_BASE}${endpoint}`;
-  
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new ApiError(
-      response.status,
-      errorData.detail || `HTTP ${response.status}: ${response.statusText}`
-    );
-  }
-
-  return response.json();
+  return apiFetch<T>(endpoint, options);
 }
 
 export const api = {
   // Programs
+  auth: {
+    // GET /auth/me – uses apiFetch so Authorization header is included
+    me(): Promise<MeResponse> {
+      return apiFetch<MeResponse>("/auth/me");
+    },
+     logout(): Promise<void> {
+      return apiFetch<void>("/auth/logout", {
+        method: "POST",
+      });
+    },
+    loginJson(payload: { email: string; password: string }) {
+      return apiFetch<TokenPair>("/auth/login-json", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
+  },
   programs: {
     list: (params?: { faculty?: string; level?: string }) => {
       const searchParams = new URLSearchParams();
@@ -289,5 +256,3 @@ terms: {
   },
 },
 };
-
-export { ApiError };

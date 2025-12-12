@@ -31,41 +31,34 @@ export default function LoginPage() {
 
     try {
       // 1) Call /auth/login-json with JSON { email, password }
-      const res = await fetch(`${API_BASE}/auth/login-json`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+     const res = await fetch(`${API_BASE}/auth/login-json`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email, password }),
+  credentials: "include", // 👈 IMPORTANT
+});
 
-      const data = (await res.json()) as TokenPair;
+if (!res.ok) {
+  const errData = await res.json().catch(() => null);
+  throw new Error(errData?.detail ?? "Login failed");
+}
 
-      if (!res.ok) {
-        const msg = (data as any)?.detail ?? "Login failed";
-        throw new Error(msg);
-      }
+const tokens = (await res.json()) as TokenPair;
+// access_token is already in HttpOnly cookie, but you can keep refresh:
+setTokens(tokens); // now a no-op for access, but ok for refresh
 
-      // 2) Store tokens in localStorage
-      setTokens(data);
+// Fetch /auth/me to get name
+const meRes = await fetch(`${API_BASE}/auth/me`, {
+  credentials: "include",
+});
+if (meRes.ok) {
+  const me = (await meRes.json()) as AccountOut;
+  const firstName = me.name?.split(" ")[0] || "Student";
+  setUserFirstName(firstName);
+}
 
-      // 3) Fetch /auth/me to get account info (name)
-      const meRes = await fetch(`${API_BASE}/auth/me`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `${data.token_type} ${data.access_token}`,
-        },
-      });
-
-      if (meRes.ok) {
-        const me = (await meRes.json()) as AccountOut;
-        const firstName = me.name?.split(" ")[0] || "Student";
-        setUserFirstName(firstName);
-      } else {
-        const fallback = email.split("@")[0];
-        setUserFirstName(fallback);
-      }
-
-      // 4) Go to profile after login
-      router.replace("/profile");
+// Redirect...
+router.replace("/profile");
     } catch (e: any) {
       setErr(e?.message ?? "Login failed");
     } finally {

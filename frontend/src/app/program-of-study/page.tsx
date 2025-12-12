@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, CheckCircle, XCircle, Clock } from "lucide-react";
 import { api } from "@/lib/api";
-import { getAccessToken, getUserFirstName } from "@/lib/auth";
+import { getUserFirstName } from "@/lib/auth";
 import type { Program, Requirement, Course, SubRequirement } from "@/types/program";
 import { useRouter , useSearchParams} from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -61,42 +61,51 @@ export default function ProgramOfStudyPage() {
   }
 };
   // Check authentication on mount
-  useEffect(() => {
-    const token = getAccessToken();
-    const name = getUserFirstName();
-    
-    if (!token) {
-      setIsLoggedIn(false);
-      setLoading(false);
-      return;
-    }
-    
-    setIsLoggedIn(true);
-    setUserName(name);
-    
-    // Fetch programs for logged-in users
-    const fetchPrograms = async () => {
+  // Check authentication on mount
+useEffect(() => {
+  const init = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      let me;
       try {
-        setLoading(true);
-        setError(null);
-        const programList = await api.programs.list();
-        setPrograms(programList);
-        
-        // Auto-select first program if available
-        if (programList.length > 0) {
-          setSelectedProgram(programList[0]);
-        }
-      } catch (err: any) {
-        console.error('Failed to fetch programs:', err);
-        setError(err.message || 'Failed to load programs');
-      } finally {
+        // This will call GET /auth/me with Authorization header via apiFetch
+        me = await api.auth.me();
+      } catch (err) {
+        // Not logged in (401 or other) -> show "Please Log In" UI
+        setIsLoggedIn(false);
         setLoading(false);
+        return;
       }
-    };
 
-    fetchPrograms();
-  }, []);
+      // If we reach here, /auth/me worked
+      setIsLoggedIn(true);
 
+      // Prefer backend name, fall back to local stored first name
+      const storedName = getUserFirstName();
+      const backendFirstName =
+        (me.name && me.name.split(" ")[0]) || storedName || null;
+
+      setUserName(backendFirstName);
+
+      // Fetch programs
+      const programList = await api.programs.list();
+      setPrograms(programList);
+      if (programList.length > 0) {
+        setSelectedProgram(programList[0]);
+      }
+    } catch (err: any) {
+      console.error("Failed to init program of study:", err);
+      setError(err.message || "Failed to load programs");
+      setIsLoggedIn(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  init();
+}, []);
   // Fetch program requirements when program changes
  // Fetch program requirements when program changes
 // Fetch program requirements when program changes
