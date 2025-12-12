@@ -1,29 +1,72 @@
 "use client";
-
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { api } from "@/lib/api";
-import { getAccessToken } from "@/lib/auth";
 import { CheckCircle, Clock, Calendar, BookOpen, FileText, Trash2 } from "lucide-react";
+import { clearAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+type MeResponse = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  email_verified: boolean;
+  created_at: string;
+};
 
 export default function ProfilePage() {
   const [completions, setCompletions] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
+  const [user, setUser] = useState<MeResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
   useEffect(() => {
-    const token = getAccessToken();
-    if (!token) {
-      setIsLoggedIn(false);
-      setLoading(false);
-      return;
-    }
-    setIsLoggedIn(true);
-    fetchData();
-  }, []);
+    const init = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
+        let me: MeResponse;
+        try {
+          // This uses the HttpOnly cookie and should succeed if logged in
+          me = await api.auth.me();
+        } catch (err) {
+          console.error("auth.me failed", err);
+          setIsLoggedIn(false);
+          setLoading(false);
+          return;
+        }
+
+        setUser(me);
+        setIsLoggedIn(true);
+
+        // Now that we know user is logged in, load their data
+        await fetchData();
+      } catch (err: any) {
+        console.error("Failed to init profile:", err);
+        setError(err.message || "Failed to load profile.");
+        setIsLoggedIn(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
+  }, []);
+  const handleLogout = async () => {
+    try {
+      await api.auth.logout();  // backend clears cookie
+      clearAuth();              // clear refresh + name from localStorage
+      router.replace("/login");
+    } catch (err) {
+      console.error("Logout failed", err);
+      alert("Failed to log out. Please try again.");
+    }
+  };
   const fetchData = async () => {
     try {
       const [completionsData, plansData] = await Promise.all([
@@ -33,9 +76,7 @@ export default function ProfilePage() {
       setCompletions(completionsData);
       setPlans(plansData);
     } catch (error) {
-      console.error('Failed to fetch data:', error);
-    } finally {
-      setLoading(false);
+      console.error("Failed to fetch data:", error);
     }
   };
 
@@ -44,9 +85,7 @@ export default function ProfilePage() {
       const data = await api.completions.list();
       setCompletions(data);
     } catch (error) {
-      console.error('Failed to fetch completions:', error);
-    } finally {
-      setLoading(false);
+      console.error("Failed to fetch completions:", error);
     }
   };
 
@@ -57,38 +96,49 @@ export default function ProfilePage() {
 
     try {
       await api.plans.delete(planId);
-      setPlans(plans.filter(p => p.id !== planId));
+      setPlans((prev) => prev.filter((p) => p.id !== planId));
     } catch (error) {
-      console.error('Failed to delete plan:', error);
-      alert('Failed to delete plan. Please try again.');
+      console.error("Failed to delete plan:", error);
+      alert("Failed to delete plan. Please try again.");
     }
   };
 
   const calculateStats = () => {
-    const completed = completions.filter(c => c.status === 'completed');
-    const inProgress = completions.filter(c => c.status === 'in-progress');
-    const planned = completions.filter(c => c.status === 'planned');
-    
-    const totalUnits = completed.reduce((sum, c) => sum + (c.units_earned || 0), 0);
-    
-    // Calculate GPA
+    const completed = completions.filter((c) => c.status === "completed");
+    const inProgress = completions.filter((c) => c.status === "in-progress");
+    const planned = completions.filter((c) => c.status === "planned");
+
+    const totalUnits = completed.reduce(
+      (sum, c) => sum + (c.units_earned || 0),
+      0
+    );
+
     const gradeToPoints: { [key: string]: number } = {
-      "A": 4.0, "A-": 3.7, "B+": 3.3, "B": 3.0, "B-": 2.7,
-      "C+": 2.3, "C": 2.0, "C-": 1.7, "D+": 1.3, "D": 1.0, "F": 0.0,
+      A: 4.0,
+      "A-": 3.7,
+      "B+": 3.3,
+      B: 3.0,
+      "B-": 2.7,
+      "C+": 2.3,
+      C: 2.0,
+      "C-": 1.7,
+      "D+": 1.3,
+      D: 1.0,
+      F: 0.0,
     };
-    
+
     let gradePoints = 0;
     let gradedUnits = 0;
-    
-    completed.forEach(c => {
+
+    completed.forEach((c) => {
       if (c.grade && gradeToPoints[c.grade] !== undefined) {
         gradePoints += gradeToPoints[c.grade] * (c.units_earned || 0);
         gradedUnits += c.units_earned || 0;
       }
     });
-    
+
     const gpa = gradedUnits > 0 ? gradePoints / gradedUnits : 0;
-    
+
     return {
       completed: completed.length,
       inProgress: inProgress.length,
@@ -98,12 +148,15 @@ export default function ProfilePage() {
     };
   };
 
-  if (!isLoggedIn) {
+  if (!isLoggedIn && !loading) {
     return (
       <div className="flex min-h-full flex-col">
         <div className="flex flex-1 justify-center px-8 py-10">
           <div className="w-full max-w-6xl">
             <h1 className="mb-3 text-3xl font-semibold">Your Profile</h1>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+    Log out
+  </Button>
             <p className="mb-8 text-sm text-muted-foreground">
               Please log in to view your profile.
             </p>
@@ -134,54 +187,70 @@ export default function ProfilePage() {
       <div className="flex flex-1 justify-center px-8 py-10">
         <div className="w-full max-w-6xl">
           <h1 className="mb-3 text-3xl font-semibold">Your Profile</h1>
-          
+
+          {/* Optional: show basic user info */}
+          {user && (
+            <p className="mb-4 text-sm text-muted-foreground">
+              Signed in as <span className="font-medium">{user.email}</span>
+            </p>
+          )}
+
           {/* Academic Stats */}
           {completions.length > 0 && (
             <div className="mb-8 grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <CheckCircle className="w-4 h-4 text-green-600" />
-                  <span className="text-sm text-muted-foreground">Completed</span>
+                  <span className="text-sm text-muted-foreground">
+                    Completed
+                  </span>
                 </div>
                 <div className="text-2xl font-bold">{stats.completed}</div>
               </div>
-              
+
               <div className="border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <Clock className="w-4 h-4 text-yellow-600" />
-                  <span className="text-sm text-muted-foreground">In Progress</span>
+                  <span className="text-sm text-muted-foreground">
+                    In Progress
+                  </span>
                 </div>
                 <div className="text-2xl font-bold">{stats.inProgress}</div>
               </div>
-              
+
               <div className="border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <Calendar className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm text-muted-foreground">Planned</span>
+                  <span className="text-sm text-muted-foreground">
+                    Planned
+                  </span>
                 </div>
                 <div className="text-2xl font-bold">{stats.planned}</div>
               </div>
-              
+
               <div className="border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <BookOpen className="w-4 h-4 text-purple-600" />
-                  <span className="text-sm text-muted-foreground">Total Units</span>
+                  <span className="text-sm text-muted-foreground">
+                    Total Units
+                  </span>
                 </div>
                 <div className="text-2xl font-bold">{stats.totalUnits}</div>
               </div>
-              
+
               <div className="border rounded-lg p-4">
                 <div className="text-sm text-muted-foreground mb-1">GPA</div>
-                <div className="text-2xl font-bold">{stats.gpa.toFixed(2)}</div>
+                <div className="text-2xl font-bold">
+                  {stats.gpa.toFixed(2)}
+                </div>
               </div>
             </div>
           )}
-          
+
           <p className="mb-8 text-sm text-muted-foreground">
-            {completions.length === 0 
+            {completions.length === 0
               ? "You don't have any completed courses yet."
-              : "Manage your courses and degree plans below."
-            }
+              : "Manage your courses and degree plans below."}
           </p>
 
           {/* Saved Plans Section */}
@@ -195,7 +264,7 @@ export default function ProfilePage() {
                 Create New Plan
               </Link>
             </div>
-            
+
             {plans.length === 0 ? (
               <div className="border border-dashed rounded-lg p-8 text-center">
                 <FileText className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
@@ -211,7 +280,7 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {plans.map(plan => (
+                {plans.map((plan) => (
                   <div
                     key={plan.id}
                     className="border rounded-lg p-4 hover:shadow-md transition"
@@ -220,7 +289,10 @@ export default function ProfilePage() {
                       <div className="flex-1">
                         <h3 className="font-semibold text-lg">{plan.name}</h3>
                         <p className="text-xs text-muted-foreground">
-                          Created {new Date(plan.created_at).toLocaleDateString()}
+                          Created{" "}
+                          {new Date(
+                            plan.created_at
+                          ).toLocaleDateString()}
                         </p>
                       </div>
                       <button
@@ -265,7 +337,7 @@ export default function ProfilePage() {
             >
               Manage Courses
             </Link>
-            
+
             <Link
               href="/program-of-study"
               className="
