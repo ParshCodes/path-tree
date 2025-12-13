@@ -14,9 +14,9 @@ export default function HomePage() {
 
       <main style={styles.main}>
         <section style={styles.hero}>
-          <h2>Welcome to Path‑Tree</h2>
+          <h2>Welcome to Course Planner</h2>
           <p>
-            Path‑Tree helps you choose your courses and see the graduation paths available to you.
+            Course Planner helps you choose your courses and see the graduation paths available to you.
           </p>
           <button style={styles.cta} onClick={() => router.push("/signup")}>
             Start Planning

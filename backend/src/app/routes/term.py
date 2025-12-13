@@ -3,7 +3,8 @@ from sqlalchemy import select, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
-from app.models.plan import PlanTerm  # this is your PlanTerm model
+from app.models.plan import PlanTerm
+from app.models.term import Term
 
 router = APIRouter(
     
@@ -13,16 +14,9 @@ router = APIRouter(
 
 @router.get("/")
 async def list_terms(db: AsyncSession = Depends(get_db)):
-    """
-    Return all distinct term codes from plan_terms.
-    Example: [{ "code": "2025-Fall", "name": "2025-Fall" }, ...]
-    """
-    result = await db.execute(
-        select(distinct(PlanTerm.term_code)).order_by(PlanTerm.term_code)
-    )
-    codes = result.scalars().all()
-
-    return [{"code": code, "name": code} for code in codes]
+    result = await db.execute(select(Term).order_by(Term.code))
+    rows = result.scalars().all()
+    return [{"code": t.code, "name": getattr(t, "name", t.code)} for t in rows]
 
 
 @router.get("/{term_id}")

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, CheckCircle, XCircle, Clock } from "lucide-react";
 import { api } from "@/lib/api";
@@ -21,7 +21,7 @@ const StatusIcon = ({ status }: { status: "complete" | "incomplete" | "in-progre
   return <XCircle className="w-5 h-5 text-red-600" />;
 };
 
-export default function ProgramOfStudyPage() {
+function ProgramOfStudyPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -715,5 +715,13 @@ const transformCompletionsToAudit = (
         )}
       </div>
     </div>
+  );
+}
+
+export default function ProgramOfStudyPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading audit...</div>}>
+      <ProgramOfStudyPageInner />
+    </Suspense>
   );
 }

@@ -5,8 +5,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
-from app.core.database import init_db, close_db
+from app.core.database import init_db, close_db, get_db
 from app.core.settings import settings
+from app.seed import seed_initial_data
 
 logger = logging.getLogger("uvicorn")
 
@@ -36,8 +37,10 @@ async def add_timing(request: Request, call_next):
 @app.on_event("startup")
 async def on_startup():
     await init_db()
-    logger.info("Database initialized.")
-
+    async for db in get_db():
+        await seed_initial_data(db)
+        break
+    logger.info("Database initialized and seeded.")
 
 @app.on_event("shutdown")
 async def on_shutdown():
