@@ -49,8 +49,8 @@ if (meRes.ok) {
   setUserFirstName(firstName);
 }
 
-// Redirect...
-router.replace("/profile");
+// Hard navigation so the navbar reinitializes with the new cookie
+window.location.href = "/profile";
     } catch (e: any) {
       setErr(e?.message ?? "Login failed");
     } finally {

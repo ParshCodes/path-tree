@@ -18,7 +18,7 @@ export default function HomePage() {
           <p>
             Course Planner helps you choose your courses and see the graduation paths available to you.
           </p>
-          <button style={styles.cta} onClick={() => router.push("/signup")}>
+          <button style={styles.cta} onClick={() => router.push("/profile")}>
             Start Planning
           </button>
         </section>

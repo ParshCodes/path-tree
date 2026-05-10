@@ -31,6 +31,11 @@ export default function Navbar() {
     let cancelled = false;
 
     const checkAuth = async () => {
+      if (pathname.startsWith("/login") || pathname.startsWith("/register")) {
+        setIsAuthed(false);
+        setFirstName(null);
+        return;
+      }
       try {
         const me = await api.auth.me();
         if (cancelled) return;

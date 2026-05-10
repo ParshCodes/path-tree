@@ -6,7 +6,7 @@ import {
 
 import type { Program, Stream, ProgramRequirement } from '@/types/program';
 import type { MeResponse, TokenPair } from '@/types/account';
-export const API_BASE = "/backend";
+export const API_BASE = "/api/proxy";
 
 async function refreshAccessToken(): Promise<TokenPair | null> {
   try {

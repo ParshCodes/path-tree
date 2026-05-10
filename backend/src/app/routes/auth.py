@@ -126,13 +126,17 @@ async def refresh_token(payload: RefreshRequest, response: Response):
         token_type="bearer",
     )
 @router.post("/logout", status_code=204, include_in_schema=True)
-async def logout(response: Response):
-    # Delete the access_token cookie
+async def logout():
+    is_production = settings.environment == "production"
+    response = Response(status_code=204)
     response.delete_cookie(
         key="access_token",
         path="/",
+        httponly=True,
+        secure=is_production,
+        samesite="none" if is_production else "lax",
     )
-    return Response(status_code=204)
+    return response
 # Return the current user using the shared dependency
 @router.get("/me", response_model=AccountOut)
 async def me(current_user: AccountOut = Depends(get_current_user)):
