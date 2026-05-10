@@ -1,238 +1,206 @@
-# Course Planner – Backend + Frontend (Docker Ready)
+# CourseCompass — Academic Course Planner
 
-This project contains a **FastAPI backend** and a **Next.js frontend** for a complete Course Planner system.  
-The project now supports **Docker Compose**, automatic **database migrations**, and **data seeding** (courses, programs, terms).
+A full-stack web application that helps students plan their entire academic journey — track completed courses, build multi-term degree plans, and run real-time degree audits against their program requirements.
 
----
-
-## 🚀 Project Overview
-
-### **Backend (FastAPI)**
-- Authentication (cookie-based)
-- Programs, Courses, Plans, Terms
-- Automatic seeding of:
-  - COMPE courses
-  - General education courses (CS, MATH, PHYS, ENG, CHEM, BIO)
-  - COMPE program
-- PostgreSQL database
-- Dockerized using Uvicorn + Python 3.11
-
-### **Frontend (Next.js 16)**
-- Full Course Planner UI
-- Classes manager (add/remove completions)
-- Program of Study audit
-- Academic plans
-- Cookie-based auth
-- Dockerized for production
+Built with a **FastAPI** backend and a **Next.js 16** frontend, containerized with Docker Compose for one-command local development.
 
 ---
 
-## 📁 Project Structure
+## Features
+
+- **Secure Authentication** — JWT access tokens stored in HttpOnly cookies (never exposed to JavaScript), with automatic refresh token rotation
+- **Course Completion Tracker** — Log completed, in-progress, and planned courses with grades, term codes, and unit counts
+- **Academic Plan Builder** — Create named degree plans, organize courses by term, add or remove courses from each semester
+- **Live Degree Audit** — Evaluate plan progress against official program requirements, see exactly which requirements are satisfied and which are missing
+- **GPA & Unit Snapshot** — Real-time GPA calculation and unit progress visualized with SVG donut charts
+- **Shareable Audit Links** — Generate a shareable URL to a specific plan's audit view
+- **Program of Study View** — Collapsible requirement tree with expand/collapse controls, color-coded completion status
+
+---
+
+## Tech Stack
+
+### Backend
+| Layer | Technology |
+|---|---|
+| Framework | FastAPI (async) |
+| ORM | SQLAlchemy 2.0 (async + `asyncpg`) |
+| Database | PostgreSQL |
+| Validation | Pydantic v2 |
+| Auth | JWT via `python-jose`, Argon2 password hashing via `pwdlib` |
+| Migrations | Alembic |
+| Runtime | Uvicorn |
+
+### Frontend
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
+| UI | Tailwind CSS v4, shadcn/ui, Radix UI |
+| Icons | Lucide React |
+| Theme | next-themes (dark mode support) |
+| Runtime | React 19 |
+
+### Infrastructure
+- Docker + Docker Compose (Postgres + backend + frontend in one command)
+- Render (backend hosting)
+- Vercel (frontend hosting)
+
+---
+
+## Architecture
 
 ```
-backend/
-  src/app/
-    main.py
-    models/
-    routes/
-    repository/
-    services/
-    core/
-    seed.py
-frontend/
-  src/app/
-  src/components/
-  src/lib/
-```  
+┌─────────────────────┐        ┌──────────────────────────────┐
+│   Next.js Frontend  │  HTTP  │       FastAPI Backend         │
+│   (Vercel / :3000)  │◄──────►│   (Render / :8000)           │
+│                     │        │                              │
+│  App Router pages   │        │  /api/v1/auth    (JWT)       │
+│  TypeScript types   │        │  /api/v1/plans   (CRUD)      │
+│  HttpOnly cookies   │        │  /api/v1/completions         │
+│  Auto token refresh │        │  /api/v1/programs            │
+└─────────────────────┘        │  /api/v1/courses             │
+                               │  /api/v1/terms               │
+                               └──────────┬───────────────────┘
+                                          │ asyncpg
+                                          ▼
+                               ┌──────────────────────┐
+                               │      PostgreSQL       │
+                               │  (Docker / Supabase)  │
+                               └──────────────────────┘
+```
+
+The backend uses **repository pattern** — routes depend on repository classes, not raw DB sessions. Every request goes through an async SQLAlchemy session, keeping DB I/O non-blocking throughout.
+
+Auth flow: login sets an `HttpOnly; SameSite` cookie on the backend. The frontend never touches the raw JWT — it just sends `credentials: "include"` on every request. If a request returns 401, the frontend automatically attempts a refresh before retrying.
 
 ---
 
-## 🐳 Running Everything With Docker
+## Getting Started
 
-This is the **recommended way** to run the full stack locally.
+### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (recommended)
+- Or: Python 3.11+ and Node.js 18+ for local runs
 
-### 1️⃣ Install Docker
-
-- **macOS/Windows**: Download [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- **Linux**: Install Docker and Docker Compose via package manager:
-  ```bash
-  sudo apt-get install docker.io docker-compose  # Ubuntu/Debian
-  sudo yum install docker docker-compose         # RHEL/CentOS
-  ```
-
-### 2️⃣ Configure Environment Variables
-
-Copy `.env.example` to `.env` in the project root:
+### 1. Clone & configure
 
 ```bash
-cp .env.example .env
+git clone <repo-url>
+cd path-tree
+cp .env.example .env   # fill in your secrets
 ```
 
-Edit `.env` with your configuration:
+Minimum required values in `.env`:
 
 ```env
-# Security (IMPORTANT: Change these in production!)
-SECRET_KEY=your-secure-random-key-here
-REFRESH_SECRET_KEY=your-secure-random-refresh-key-here
-
-# Database
-POSTGRES_PASSWORD=your-secure-db-password
-POSTGRES_USER=course_planner
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=course_planner
-
-# Database URL (auto-generated from above for reference)
-DATABASE_URL=postgresql+asyncpg://course_planner:your-secure-db-password@localhost:5432/course_planner
-
-# Frontend
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+SECRET_KEY=your-secure-random-key
+REFRESH_SECRET_KEY=your-secure-random-refresh-key
+POSTGRES_PASSWORD=yourpassword
 ```
 
-**⚠️ Security Note**: Never commit `.env` to version control. Use `.env.example` for templates.
-
-### 3️⃣ Run the Full Stack
-
-From the **project root**:
+### 2. Run with Docker
 
 ```bash
-docker compose build
-docker compose up
+docker compose up --build
 ```
 
-This starts:
-- **Postgres** container on port 5432
-- **FastAPI backend** on `http://localhost:8000`
-- **Next.js frontend** on `http://localhost:3000`
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8000 |
+| Swagger docs | http://localhost:8000/docs |
 
-To run in background:
+The backend automatically runs migrations and seeds the database with programs, courses, and terms on first startup — no manual setup needed.
+
+### 3. Run without Docker
+
+**Backend:**
 ```bash
-docker compose up -d
-```
-
-To view logs:
-```bash
-docker compose logs -f backend  # Backend logs
-docker compose logs -f frontend # Frontend logs
-docker compose logs -f db       # Database logs
-```
-
-To stop:
-```bash
-docker compose down
-```
-
----
-
-## 🛢 Database & Seeding
-
-The backend automatically seeds:
-- Global terms (FA24, SP25, SU25, FA25, SP26)
-- COMPE program
-- COMPE courses
-- General CS/MATH/PHYS/ENG/CHEM/BIO courses
-
-### To inspect DB manually:
-
-```
-docker compose exec db psql -U postgres -d course_planner
-```
-
-List tables:
-```
-\dt
-```
-
-View data:
-```
-SELECT * FROM courses;
-SELECT * FROM terms;
-SELECT * FROM programs;
-```
-
----
-
-## 🧪 Running Backend Locally (without Docker)
-If you need to run FastAPI manually:
-
-```
 cd backend
-pip install -r requirements.txt
-python3 -m uvicorn src.app.main:app --reload
+pip install -e ".[dev]"
+uvicorn src.app.main:app --reload
 ```
 
-Open Swagger:  
-http://localhost:8000/docs
-
----
-
-## 🧪 Running Frontend Locally (without Docker)
-
-```
+**Frontend:**
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Open:  
-http://localhost:3000
+---
+
+## API Overview
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/v1/auth/register` | Create account |
+| `POST` | `/api/v1/auth/login-json` | Login, sets HttpOnly cookie |
+| `POST` | `/api/v1/auth/refresh` | Rotate refresh token |
+| `GET` | `/api/v1/auth/me` | Get current user |
+| `GET` | `/api/v1/plans` | List user's plans |
+| `POST` | `/api/v1/plans` | Create a plan |
+| `GET` | `/api/v1/plans/{id}/audit` | Run degree audit |
+| `GET` | `/api/v1/completions` | List course completions |
+| `GET` | `/api/v1/programs` | List programs |
+| `GET` | `/api/v1/courses` | Search course catalog |
+
+Full interactive docs at `/docs` (Swagger UI) or `/redoc`.
 
 ---
 
-## 🐛 Troubleshooting
+## Deployment
 
-### Port Already in Use
-If ports 5432, 8000, or 3000 are already in use:
+### Backend (Render)
 
-```bash
-# Find what's using the port (macOS/Linux)
-lsof -i :8000  # For port 8000
+Set the following environment variables on your Render service:
 
-# Or change ports in docker-compose.yml
-# Example: "8001:8000" maps container port 8000 to host port 8001
+```
+ENVIRONMENT=production
+DATABASE_URL=postgresql+asyncpg://...
+SECRET_KEY=...
+REFRESH_SECRET_KEY=...
+CORS_ORIGINS=https://your-vercel-app.vercel.app
 ```
 
-### Environment Variables Not Loading
-- Ensure `.env` is in the project root (same level as `docker-compose.yml`)
-- Restart containers after changing `.env`:
-  ```bash
-  docker compose down
-  docker compose up --build
-  ```
+### Frontend (Vercel)
 
-### Database Connection Failed
-- Check Postgres container is healthy: `docker compose ps`
-- Verify POSTGRES_PASSWORD matches between `.env` and docker-compose.yml
-- View database logs: `docker compose logs db`
+Set in Vercel project settings:
 
-### Frontend Can't Connect to Backend
-- Ensure backend is running: `docker compose logs backend`
-- Check NEXT_PUBLIC_API_BASE_URL in `.env` matches backend URL
-- Verify CORS settings in backend/src/app/main.py
-
-### TypeScript Errors in Frontend
-- Clear Next.js cache: `rm -rf frontend/.next`
-- Reinstall dependencies: `cd frontend && npm install`
-- Check node_modules are up to date
-
-### Backend Won't Start
-- Check Python version: `docker compose logs backend`
-- Verify all environment variables are set in `.env`
-- Ensure requirements.txt is properly formatted
+```
+NEXT_PUBLIC_API_BASE_URL=https://your-render-backend.onrender.com
+```
 
 ---
 
-## ❗ Notes
-- Docker is required for consistent Postgres + backend startup.
-- No manual DB inserts are required; all seed data is generated automatically.
-- When schema changes, reset docker DB volume:
+## Project Structure
 
 ```
-docker compose down
-docker volume rm path-tree_db_data
+backend/
+  src/app/
+    api/v1/router.py       # Route registration
+    routes/                # HTTP handlers
+    repository/            # DB access layer
+    services/              # Business logic
+    schemas/               # Pydantic I/O models
+    models/                # SQLAlchemy ORM models
+    core/                  # Auth, DB, settings, dependencies
+    seed.py                # Initial data seeding
+
+frontend/
+  src/
+    app/                   # Next.js App Router pages
+      (auth)/              # Login & register
+      profile/             # Plan management
+      classes/             # Course completion manager
+      program-of-study/    # Degree audit view
+    components/            # Shared UI components
+    lib/                   # API client, auth helpers
+    types/                 # TypeScript type definitions
 ```
 
-
+---
 
 ## License
+
 Personal / Academic use
