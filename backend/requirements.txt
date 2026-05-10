@@ -19,3 +19,4 @@ pydantic[email]
 pwdlib[argon2]
 python-multipart
 python-jose[cryptography]
+PyJWT
