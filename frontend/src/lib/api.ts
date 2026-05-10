@@ -6,8 +6,7 @@ import {
 
 import type { Program, Stream, ProgramRequirement } from '@/types/program';
 import type { MeResponse, TokenPair } from '@/types/account';
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+export const API_BASE = "/backend";
 
 async function refreshAccessToken(): Promise<TokenPair | null> {
   try {
