@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 from time import time
 
 from fastapi import FastAPI, Request
@@ -11,7 +12,22 @@ from app.seed import seed_initial_data
 
 logger = logging.getLogger("uvicorn")
 
-app = FastAPI(title=settings.app_name, version=settings.app_version)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await init_db()
+    async for db in get_db():
+        await seed_initial_data(db)
+        break
+    logger.info("Database initialized and seeded.")
+    yield
+    # Shutdown
+    await close_db()
+    logger.info("Database disposed.")
+
+
+app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
 
 # CORS
 origins = ["http://localhost:3000", "courseplanner-pi.vercel.app"]
@@ -32,20 +48,6 @@ async def add_timing(request: Request, call_next):
     logger.info("%s %s -> %s in %.2fms", request.method, request.url.path, response.status_code, duration)
     response.headers["X-Process-Time-ms"] = f"{duration:.2f}"
     return response
-
-
-@app.on_event("startup")
-async def on_startup():
-    await init_db()
-    async for db in get_db():
-        await seed_initial_data(db)
-        break
-    logger.info("Database initialized and seeded.")
-
-@app.on_event("shutdown")
-async def on_shutdown():
-    await close_db()
-    logger.info("Database disposed.")
 
 
 app.include_router(api_router)

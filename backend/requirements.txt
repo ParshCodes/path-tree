@@ -3,8 +3,6 @@ uvicorn[standard]
 sqlalchemy[asyncio]
 alembic
 asyncpg
-python-jose[cryptography]
-passlib[bcrypt]
 pydantic
 pydantic-settings
 python-dotenv
@@ -17,8 +15,7 @@ flake8
 mypy
 pre-commit
 pyyaml
-PyJWT  
 pydantic[email]
-pwdlib    
-pwdlib[argon2] 
+pwdlib[argon2]
 python-multipart
+python-jose[cryptography]

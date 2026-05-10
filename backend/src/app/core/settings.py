@@ -8,9 +8,9 @@ class Settings(BaseSettings):
     app_version: str = Field(default="1.0.0", description="App version")
 
     # JWT
-    secret_key: str = Field(default="change_me", description="JWT secret key")
+    secret_key: str = Field(description="JWT secret key")
     algorithm: str = Field(default="HS256", description="JWT algorithm")
-    refresh_secret_key: str = Field(default="change_me_too", description="JWT refresh secret key")
+    refresh_secret_key: str = Field(description="JWT refresh secret key")
     access_token_expire_minutes: int = Field(default=30)
     refresh_token_expire_days: int = Field(default=30)  # 30 days
 

@@ -1,11 +1,10 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 import jwt
 from jwt import PyJWTError
-from fastapi import APIRouter, Depends, HTTPException, status, Response
-from app.core.auth import create_access_token,create_refresh_token, oauth2_scheme
+from app.core.auth import create_access_token, create_refresh_token, oauth2_scheme
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.settings import settings
@@ -46,7 +45,7 @@ async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
 async def login_json(
     payload: LoginRequest,
     db: AsyncSession = Depends(get_db),
-    response: Response = None,
+    response: Response,
 ):
     repo = AccountRepository(db)
     user = await repo.authenticate(payload.email, payload.password)

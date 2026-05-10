@@ -195,19 +195,6 @@ async def remove_course(
     await repo.remove_course(term_id=term_id, course_code=course_code)
     return None
 
-# ---- Audit + Share stubs ----
-
-@router.get("/{plan_id}/audit")
-async def audit_plan(plan_id: int):
-    # TODO: implement degree audit logic
-    return {"plan_id": plan_id, "status": "audit_stub"}
-
-@router.post("/{plan_id}/share-links")
-async def create_share_link(plan_id: int):
-    # TODO: implement shareable links
-    return {"plan_id": plan_id, "share_url": f"https://example.com/share/{plan_id}"}
-
-# ---- Audit + Share stubs ----
 
 @router.get("/{plan_id}/audit", response_model=PlanAuditOut)
 async def audit_plan(
