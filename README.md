@@ -21,7 +21,7 @@ Path Tree is a full-stack academic planning tool built for engineering students.
 
 ## Tech stack
 
-### Backend
+### Backendss
 | | |
 |---|---|
 | Framework | FastAPI (fully async) |
